@@ -247,11 +247,16 @@ export default function DashboardTab({ relayerStats, onRefreshRelayer }: Dashboa
           paddingTop: '10px',
           borderTop: '1px solid var(--border)',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span className="font-mono" style={{ fontSize: '0.8rem', color: 'var(--text-2)' }}>Select Node:</span>
-            <select
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <label htmlFor="nodeIdInput" className="font-mono" style={{ fontSize: '0.8rem', color: 'var(--text-2)' }}>
+              Hardware Node ID:
+            </label>
+            <input
+              id="nodeIdInput"
+              type="text"
               value={selectedDeviceId}
-              onChange={(e) => setSelectedDeviceId(e.target.value)}
+              onChange={(e) => setSelectedDeviceId(e.target.value.trim().toUpperCase())}
+              placeholder="e.g. HYDRX-NODE-101"
               className="font-mono"
               style={{
                 background: 'var(--surface-elevated)',
@@ -259,21 +264,38 @@ export default function DashboardTab({ relayerStats, onRefreshRelayer }: Dashboa
                 color: 'var(--text-1)',
                 padding: '6px 12px',
                 borderRadius: 'var(--radius-input)',
-                fontSize: '0.82rem',
-                cursor: 'pointer',
+                fontSize: '0.84rem',
+                minWidth: '200px',
+                outline: 'none',
               }}
-            >
-              {availableDevices.map((devId) => (
-                <option key={devId} value={devId}>
-                  {devId}
-                </option>
-              ))}
-            </select>
+            />
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.74rem', color: 'var(--text-4)' }}>Presets:</span>
+            {['HYDRX-NODE-101', 'HYDRX-NODE-202', publicKey ? `HYDRX-NODE-${publicKey.toBase58().slice(0, 4)}` : null].filter(Boolean).map((devId) => (
+              <button
+                key={devId}
+                type="button"
+                onClick={() => setSelectedDeviceId(devId as string)}
+                className="btn-mono-ghost"
+                style={{
+                  padding: '3px 8px',
+                  fontSize: '0.7rem',
+                  fontFamily: 'var(--font-mono)',
+                  background: selectedDeviceId === devId ? 'var(--text-1)' : 'transparent',
+                  color: selectedDeviceId === devId ? 'var(--canvas)' : 'var(--text-2)',
+                  borderColor: selectedDeviceId === devId ? 'var(--text-1)' : 'var(--border)',
+                }}
+              >
+                {devId}
+              </button>
+            ))}
           </div>
 
           <button
             onClick={handlePairDevice}
-            disabled={isPairing || !connected}
+            disabled={isPairing || !connected || !selectedDeviceId}
             className="btn-mono-ghost"
             style={{
               padding: '6px 16px',
@@ -283,7 +305,7 @@ export default function DashboardTab({ relayerStats, onRefreshRelayer }: Dashboa
               color: 'var(--canvas)',
             }}
           >
-            {isPairing ? 'Binding Node...' : `Claim & Bind ${selectedDeviceId} to Wallet`}
+            {isPairing ? 'Binding Node...' : `Claim & Bind ${selectedDeviceId || 'Node'} to Wallet`}
           </button>
         </div>
 

@@ -11,6 +11,7 @@
    - 3.1 Full System Architecture Diagram
    - 3.2 Architectural Flow & 4-Layer Data Transmission Model
    - 3.3 Deployed Addresses & Network Endpoints
+   - 3.4 Hardware Identity Generation & Device-to-Wallet Onboarding Architecture
 4. [Prerequisites & Toolchain Setup](#4-prerequisites--toolchain-setup)
 5. [Local Setup & Installation Step-by-Step](#5-local-setup--installation-step-by-step)
    - 5.1 Clone & Install All Sub-Packages
@@ -138,55 +139,6 @@ magicblockz/
 
 ![HydrX Protocol — Full System Architecture](./assets/hydrx_system_architecture.png)
 
-```text
-+------------------------------------------------------------------------------------------------------------------------+
-|                                        HYDRX PROTOCOL - FULL SYSTEM ARCHITECTURE                                       |
-+------------------------------------------------------------------------------------------------------------------------+
-|                                                                                                                        |
-|  . - - - - - - - - - - - - - .       . - - - - - - - - - - - - - - - - - - - - - - - .                                 |
-|  '       EDGE HARDWARE       '       '  SPEED LAYER - MAGICBLOCK EPHEMERAL ROLLUP    '                                 |
-|  '                           '       '                                               '                                 |
-|  '   +-------------------+   '       '   +---------------------------------------+   '                                 |
-|  '   |  HOUSEHOLD SENSOR |   '       '   |     MAGICBLOCK EPHEMERAL ROLLUP       |   '                                 |
-|  '   | ESP32 + YF-S201   |   '       '   |                                       |   '                                 |
-|  '   | Flow Sensor       |   '       '   |  record_telemetry()                   |   '                                 |
-|  '   +---------+---------+   '       '   |  ~15-45ms  |  0 gas                   |   '                                 |
-|  '             | raw flow    '       '   |  Parallel per resident                |   '                                 |
-|  '             | pulses      '       '   |  No write-lock contention             |   '                                 |
-|  '             v             '       '   +------------------+--------------------+   '                                 |
-|  '   +-------------------+   '       '                      |           ^            '                                 |
-|  '   |   RELAYER PROXY   |   '       ' - - - - - - - - - - -|- - - - - -|- - - - - - '                                 |
-|  '   | Dual-connection   |   '                              |           :                                              |
-|  '   | router            |   '           commit_resident()  |           : delegate_resident()                          |
-|  '   | localhost:3005    |---'---> ingest telemetry         |           : (initial lock)                               |
-|  '   +-------------------+   '   (solid arrow: real-time)   |           :                                              |
-|  . - - - - - - - - - - - - - .                              |           :                                              |
-|                                                             v           :                                              |
-|                              . - - - - - - - - - - - - - - -|- - - - - -:- - - - - - .       . - - - - - - - - - - - - - - - - - - - - - - - .
-|                              '     SETTLEMENT LAYER - SOLANA BASE (L1)               '       '                 MARKET LAYER                  '
-|                              '                                                       '       '                                               '
-|                              '   +-----------------------------------------------+   '       '   +-----------------+   +-----------------+   '
-|                              '   |            SOLANA BASE LAYER (L1)             |   '       '   | RESIDENT WALLET |   | ESG MARKETPLACE |   '
-|                              '   |                                               |   '       '   |                 |   |                 |   '
-|                              '   |  PoolState PDA          ResidentState PDA     |---'-------'-->| claim_tokens()  |-->| Corporations    |   '
-|                              '   |  $HYDRX Mint PDA        Delegation Program    |   ' (solid)   | $HYDRX received |   | buy & burn      |   '
-|                              '   +-----------------------------------------------+   '       '   +-----------------+   | $HYDRX          |   '
-|                              '                                                       '       '                         +--------+--------+   '
-|                              . - - - - - - - - - - - - - - - - - - - - - - - - - - - .       '                                  | issues     '
-|                                                                                              '                                  v            '
-|                                                                                              '                         +-----------------+   '
-|                                                                                              '                         |WATER RESTORATION|   '
-|                                                                                              '                         |CERTIFICATE      |   '
-|                                                                                              '                         |issued           |   '
-|                                                                                              '                         +-----------------+   '
-|                                                                                              . - - - - - - - - - - - - - - - - - - - - - - - .
-|                                                                                                                        |
-|  Data Flow Legend:                                                                                                     |
-|    Solid arrow (-->)  = Real-time data flow (telemetry pulses, relayer ingestion, claims, marketplace burning)           |
-|    Dashed arrow (- ->) = Periodic settlement / state delegation (initial delegation lock, 20-ping checkpoint commits)   |
-+------------------------------------------------------------------------------------------------------------------------+
-```
-
 ### 3.2 Architectural Flow & 4-Layer Data Transmission Model
 
 The HydrX architecture operates across 4 coordinated layers engineered to eliminate write-lock contention, zero out transaction costs for micro-telemetry, and deliver cryptographic verification of conserved water:
@@ -238,6 +190,59 @@ The HydrX architecture operates across 4 coordinated layers engineered to elimin
 | **Official Solana RPC** | Solana Devnet | `https://api.devnet.solana.com` |
 | **MagicBlock Router** | MagicBlock Devnet | `https://devnet-router.magicblock.app/` |
 | **Ephemeral Rollup RPC** | MagicBlock Devnet | `https://devnet-as.magicblock.app/` |
+
+---
+
+### 3.4 Hardware Identity Generation & Device-to-Wallet Onboarding Architecture
+
+A central challenge in DePIN networks is establishing an unforgeable, 1-to-1 cryptographic link between physical embedded hardware units and self-custody Solana user wallets. HydrX implements an end-to-end silicon-to-smart-contract onboarding architecture:
+
+#### 1. How Each Hardware Unit Obtains Its Unique Identifier
+Physical water meter nodes derive their identity directly from the physical silicon of the ESP32 microcontroller:
+- **Factory-Burned eFuse MAC Address**: Every ESP32 chip contains a factory-programmed 48-bit Media Access Control (MAC) address permanently burned into one-time-programmable electronic fuses (`eFuse`). In the embedded firmware (`iot-hardware/sketch.ino`), this immutable silicon fingerprint is accessed via `ESP.getEfuseMac()`.
+- **Hardware Node ID Format**: During firmware initialization, the device hashes or formats the eFuse MAC into a human-readable node identifier:
+  ```text
+  Hardware Node ID = "HYDRX-NODE-" + HexString(eFuseMac[3..5])
+  Examples: HYDRX-NODE-101, HYDRX-NODE-202, HYDRX-NODE-A48F12
+  ```
+- **Silicon Immutability**: Because the eFuse is physically burned at the semiconductor foundry, this device identity cannot be altered, spoofed, or extracted by unauthorized parties.
+- **Physical QR & Serial Label**: Each physical unit has its unique Node ID laser-etched on its IP67 waterproof enclosure and encoded into a QR code for instantaneous residential scanning.
+
+#### 2. How Hardware-to-Wallet Binding Works Step-by-Step
+When a resident receives a HydrX hardware node, onboarding into the DePIN network proceeds through four distinct phases:
+
+```text
+[Phase 1: Physical Provisioning] ──> [Phase 2: Wallet Auth] ──> [Phase 3: Cryptographic Binding] ──> [Phase 4: Ephemeral Stream]
+ESP32 + YF-S201 Flow Sensor           Phantom / Solflare          POST /api/pair-device             0 Gas Fee Telemetry
+Burned Silicon Node ID                Solana Devnet               PDA Initialized & Delegated        $HYDRX Yield Credited
+```
+
+1. **Phase 1: Physical Provisioning**: The resident connects the meter to their household water main. The Hall-effect rotor counts 450 electrical pulses per liter of water.
+2. **Phase 2: Wallet Authentication**: The resident visits the HydrX dApp (`https://hydrx-frontend.onrender.com`). If disconnected, all operational tabs are locked behind a cryptographic gate screen. Connecting a Solana Devnet wallet (e.g. `7dg5...qqWg`) unlocks the protocol.
+3. **Phase 3: Cryptographic Claim & Binding (`POST /api/pair-device`)**:
+   - In the **Dashboard** or **Hardware Lab**, the user enters their Node ID into the **Hardware Node ID** input box (e.g., `HYDRX-NODE-101` or any custom physical serial ID).
+   - The resident clicks **"Claim & Bind Node to Wallet"**.
+   - The frontend calls the relayer endpoint:
+     ```json
+     POST /api/pair-device
+     {
+       "deviceId": "HYDRX-NODE-101",
+       "residentWallet": "7dg5mE8m88...qqWg"
+     }
+     ```
+   - **On-Chain PDA Initialization**: The relayer derives the user's `ResidentState` PDA:
+     ```text
+     seeds = [b"resident", residentPubkey.as_ref()]
+     program_id = 8dLu65pPh6AbfDmRW5GUGqjPQuxihnpv2vWydzt98vKj
+     ```
+   - **MagicBlock Ephemeral Rollup Delegation**: The relayer invokes `delegate_resident` via Cross-Program Invocation (CPI) to the MagicBlock Delegation Program (`DELeGGvXpWV2fqJUhqcF5ZSYMS4JTLjteaAMARRSaeSh`), cloning write-authority into the high-speed Ephemeral Rollup validator runtime (`devnet-as.magicblock.app`).
+   - **Solana Devnet L1 Verification Event**: The relayer submits an on-chain transaction with a Memo event:
+     `[HYDRX-PAIR-DEVICE] Node: HYDRX-NODE-101 | Resident: 7dg5...qqWg`.
+   - **Solana Explorer Indexing**: The transaction explicitly adds the resident's wallet address into the transaction account keys list (`keys`). This ensures the transaction is permanently indexed and displayed under the user's wallet address on Solana Explorer (`https://explorer.solana.com/address/<WALLET>?cluster=devnet`).
+4. **Phase 4: Real-Time Telemetry & Yield Crediting**:
+   - As water passes through the sensor, telemetry pulses are signed at the edge and transmitted to `/api/telemetry` with `residentWallet: <WALLET>`.
+   - Transactions execute with **0 SOL gas fee** at sub-50ms latency on MagicBlock Ephemeral Rollup.
+   - Water consumption below the 200 Liters/day conservation quota accrues token yield, which the resident can claim as minted `$HYDRX` SPL tokens directly to their connected wallet.
 
 ---
 
@@ -532,24 +537,34 @@ The frontend application (`http://localhost:3003`) is divided into distinct page
 
 ### 7.2 Resident Conservation Dashboard Tab
 * **Route**: Default active tab on `/`
-* **Purpose**: Household management portal for connected smart water meters.
+* **Purpose**: Household management portal for connected smart water meters, hardware node binding, and conservation yield claims.
 * **Key Features**:
-  * **Daily Consumption vs. Benchmark**: Displays household usage against the regional conservation target (200 Liters/day).
-  * **Pending $HYDRX Rewards**: Real-time counter of earned conservation tokens.
-  * **One-Click Token Claim**: Converts pending on-chain reward units into minted `$HYDRX` SPL tokens delivered to the connected Phantom or Solflare wallet.
-  * **Live Stream**: Instant confirmation of the household's latest meter pings.
+  * **Hardware Node Onboarding & Wallet Binding**:
+    * **Interactive Node ID Input**: Residents can type any unique hardware serial number (e.g. `HYDRX-NODE-101`, `HYDRX-NODE-A48F12`) directly into the dedicated input field, or click one of the quick preset chips.
+    * **1-Click "Claim & Bind Node to Wallet"**: Dispatches `POST /api/pair-device` to the relayer. The relayer derives the user's `ResidentState` PDA on Solana Devnet L1, delegates write-authority to MagicBlock Ephemeral Rollup via CPI, and submits a confirmed transaction with on-chain Memo indexing.
+    * **Direct Solana Explorer Proof**: Once paired, a success banner provides direct clickable links to the confirmed transaction on Solana Explorer with the user's wallet listed as an involved account.
+  * **Daily Consumption vs. Benchmark**: Displays real-time household usage against the regional conservation target (200 Liters/day).
+  * **Pending $HYDRX Rewards**: Live counter of accrued conservation tokens calculated based on sub-benchmark consumption.
+  * **One-Click Token Claim**: Converts pending on-chain reward units into minted `$HYDRX` SPL tokens delivered directly to the connected Phantom or Solflare wallet.
+  * **Live Stream Feed**: Instant chronological log of incoming telemetry pings, flow volume, and cryptographic verification status.
 
 ---
 
 ### 7.3 IoT Hardware Lab Tab
 * **Route**: Select **Hardware Lab** from the navigation bar
-* **Purpose**: Real-time diagnostics for hardware engineers, utility operators, and auditors.
+* **Purpose**: Comprehensive hardware engineering lab, digital twin simulator, and circuit diagnostics.
 * **Smart Meter & Circuit Simulation**:
   ![HydrX ESP32 IoT Smart Meter Wokwi Simulator](./assets/wokwi_simulation_esp32.png)
 * **Key Features**:
-  * **Live Oscilloscope Pulse Graph**: Visualizes incoming telemetry pulses and instantaneous flow rate (Liters/minute).
-  * **Payload Inspector**: Shows the exact JSON payload transmitted by the ESP32 (including raw pulse count, flow duration, and cryptographic signature).
-  * **Node Connection Status**: Displays signal strength (RSSI), battery voltage, and firmware version of active meters.
+  * **Virtual Twin Simulator**:
+    * **Live Pipe & Valve Aperture Control**: Interactive valve slider (0% to 100%, 0.00 to 0.50 L/s) driving simulated water flow through the virtual YF-S201 rotor.
+    * **Physical Tamper Switch**: Toggle physical tamper switch to simulate anti-theft edge security triggers and cryptographic alert logging.
+    * **Industrial Matrix LCD Readout**: 16x2 green matrix display dynamically updating meter identity, flow rate (L/s and L/m), cumulative liters, and node status (STANDBY, FLOWING, TAMPER).
+    * **Attestation Feed**: Real-time log of every pulse interval cryptographically verified on Solana Devnet with direct links to Solana Explorer.
+  * **Live Wokwi Schematic Link**: One-click launcher to open the physical ESP32 breadboard simulation on Wokwi (`https://wokwi.com/projects/472508191464530945`).
+  * **3D Hardware Blueprints & Bill of Materials (BOM)**: Multi-page engineering spec covering the ESP32-WROOM-32D, YF-S201 Hall-effect sensor, IP67 enclosure, solar power management, and assembly schematics.
+  * **Live Oscilloscope Pulse Graph**: Visualizes incoming telemetry pulse frequencies in real time.
+  * **Payload Inspector**: Displays raw JSON telemetry payloads transmitted by the hardware edge.
 
 ---
 
@@ -663,6 +678,16 @@ When auditing or presenting transactions in Solana Explorer:
   * **Status**: `Success (Confirmed)`
   * **Program**: `Solana Memo Program (MemoSq4gq...)` or `HydrxMagic`
   * **Log Message**: `[HYDRX-CHECKPOINT-COMMIT-L1] Node: HYDRX-NODE-101 | Sealed 3 ER Pulses to Solana L1`
+
+### Verifying Hardware Device-to-Wallet Pairing on Solana Explorer
+* **Resident Wallet History URL**:
+  ```text
+  https://explorer.solana.com/address/<YOUR_WALLET_ADDRESS>?cluster=devnet
+  ```
+* **Direct Proof in Connected Wallet History**:
+  * Because the relayer explicitly appends the resident's public key as an involved account (`keys`) in the transaction, every device pairing transaction appears immediately under the resident's self-custody wallet history on Solana Explorer.
+  * **Memo Instruction**: `[HYDRX-PAIR-DEVICE] Node: HYDRX-NODE-101 | Resident: <WALLET_ADDRESS>`
+  * **State Delegation**: Initialized `ResidentState` PDA delegated to MagicBlock Ephemeral Rollup (`DELeGGvXpWV2fqJUhqcF5ZSYMS4JTLjteaAMARRSaeSh`).
 
 ### Inspecting the Resident PDA State
 * **PDA Address**: `https://explorer.solana.com/address/9AV5wb7zjKv2HGeZtdxSXi9y8qizF9AFmAreE9RLfgEW?cluster=devnet`

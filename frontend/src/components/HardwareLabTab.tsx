@@ -381,33 +381,51 @@ export default function HardwareLabTab({ relayerStats, onRefreshRelayer }: Hardw
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-          {/* Node Switcher */}
+          {/* Node Switcher & Input */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span className="font-mono" style={{ fontSize: '0.72rem', color: 'var(--text-3)' }}>Node:</span>
+            <input
+              type="text"
+              value={selectedNode}
+              onChange={(e) => setSelectedNode(e.target.value.trim().toUpperCase())}
+              placeholder="e.g. HYDRX-NODE-101"
+              className="font-mono"
+              style={{
+                background: 'var(--surface-elevated)',
+                border: '1px solid var(--border)',
+                color: 'var(--text-1)',
+                padding: '3px 8px',
+                borderRadius: 'var(--radius-input)',
+                fontSize: '0.75rem',
+                width: '150px',
+                outline: 'none',
+              }}
+            />
             <button
               onClick={() => setSelectedNode('HYDRX-NODE-101')}
               className="btn-mono-ghost"
               style={{
-                padding: '4px 10px',
-                fontSize: '0.72rem',
+                padding: '3px 8px',
+                fontSize: '0.7rem',
                 fontFamily: 'var(--font-mono)',
                 background: selectedNode === 'HYDRX-NODE-101' ? 'var(--text-1)' : 'transparent',
                 color: selectedNode === 'HYDRX-NODE-101' ? 'var(--canvas)' : 'var(--text-1)',
                 fontWeight: selectedNode === 'HYDRX-NODE-101' ? 700 : 500,
               }}
             >
-              HYDRX-NODE-101
+              Default
             </button>
             {publicKey && (
               <button
                 onClick={() => setSelectedNode(`HYDRX-NODE-${publicKey.toBase58().slice(0, 4)}`)}
                 className="btn-mono-ghost"
                 style={{
-                  padding: '4px 10px',
-                  fontSize: '0.72rem',
+                  padding: '3px 8px',
+                  fontSize: '0.7rem',
                   fontFamily: 'var(--font-mono)',
-                  background: selectedNode !== 'HYDRX-NODE-101' ? 'var(--text-1)' : 'transparent',
-                  color: selectedNode !== 'HYDRX-NODE-101' ? 'var(--canvas)' : 'var(--text-1)',
-                  fontWeight: selectedNode !== 'HYDRX-NODE-101' ? 700 : 500,
+                  background: selectedNode === `HYDRX-NODE-${publicKey.toBase58().slice(0, 4)}` ? 'var(--text-1)' : 'transparent',
+                  color: selectedNode === `HYDRX-NODE-${publicKey.toBase58().slice(0, 4)}` ? 'var(--canvas)' : 'var(--text-1)',
+                  fontWeight: selectedNode === `HYDRX-NODE-${publicKey.toBase58().slice(0, 4)}` ? 700 : 500,
                 }}
               >
                 Wallet Node
