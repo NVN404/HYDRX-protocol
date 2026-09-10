@@ -48,13 +48,13 @@ export default function Navbar({
     };
   }, [connected]);
 
-  // Navigation tabs for residents & community (accessible for live exploration)
+  // Navigation tabs for residents & community
   const allNavItems = [
-    { id: 'dashboard', label: 'Dashboard' },
-    { id: 'leaderboard', label: 'Leaderboard' },
-    { id: 'donation', label: 'Impact & Rewards' },
-    { id: 'faq', label: 'FAQ' },
-    { id: 'hardware', label: 'Hardware Lab' },
+    { id: 'dashboard', label: 'Dashboard', requiresWallet: true },
+    { id: 'leaderboard', label: 'Leaderboard', requiresWallet: true },
+    { id: 'donation', label: 'Impact & Rewards', requiresWallet: true },
+    { id: 'faq', label: 'FAQ', requiresWallet: false },
+    { id: 'hardware', label: 'Hardware Lab', requiresWallet: true },
   ];
 
   const visibleNavItems = allNavItems;
@@ -117,6 +117,8 @@ export default function Navbar({
       >
         {visibleNavItems.map((item) => {
           const isActive = activeTab === item.id;
+          const isLocked = !connected && item.requiresWallet;
+
           return (
             <button
               key={item.id}
@@ -125,17 +127,37 @@ export default function Navbar({
                 position: 'relative',
                 background: 'transparent',
                 border: 'none',
-                padding: '8px 16px',
-                color: isActive ? 'var(--text-1)' : 'var(--text-3)',
+                padding: '8px 14px',
+                color: isActive ? 'var(--text-1)' : isLocked ? 'var(--text-4)' : 'var(--text-3)',
                 fontSize: '0.86rem',
                 fontWeight: isActive ? 600 : 500,
                 cursor: 'pointer',
                 transition: 'color 0.2s ease',
                 whiteSpace: 'nowrap',
                 fontFamily: 'var(--font-sans)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
               }}
             >
-              {item.label}
+              <span>{item.label}</span>
+              {isLocked && (
+                <span
+                  className="font-mono"
+                  style={{
+                    fontSize: '0.6rem',
+                    padding: '1px 5px',
+                    borderRadius: '4px',
+                    background: 'rgba(239, 68, 68, 0.12)',
+                    color: '#f87171',
+                    border: '1px solid rgba(239, 68, 68, 0.25)',
+                    fontWeight: 600,
+                    letterSpacing: '0.03em',
+                  }}
+                >
+                  LOCKED
+                </span>
+              )}
               {isActive && (
                 <motion.div
                   layoutId="nav-underline"
@@ -143,8 +165,8 @@ export default function Navbar({
                   style={{
                     position: 'absolute',
                     bottom: '-2px',
-                    left: '16px',
-                    right: '16px',
+                    left: '14px',
+                    right: '14px',
                     height: '2px',
                     background: 'var(--text-1)',
                     borderRadius: '2px',

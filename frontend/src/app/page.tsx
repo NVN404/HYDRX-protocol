@@ -13,6 +13,7 @@ import LeaderboardTab from '../components/LeaderboardTab';
 import DonationTab from '../components/DonationTab';
 import HardwareLabTab from '../components/HardwareLabTab';
 import FaqTab from '../components/FaqTab';
+import WalletGateView from '../components/WalletGateView';
 import { getRelayerUrl, RELAYER_URL, PROGRAM_ID, SOLANA_NETWORK, getAddressExplorerUrl } from '../lib/solana';
 
 export default function Page() {
@@ -105,8 +106,10 @@ export default function Page() {
     );
   }
 
-  // Allow open access to all tabs (Hardware Lab, Dashboard preview, Leaderboard, FAQ)
+  // Protected tabs require Solana wallet connection
   const currentView = activeTab;
+  const isProtectedView = ['dashboard', 'hardware', 'leaderboard', 'donation', 'donations', 'impact'].includes(currentView);
+  const showWalletGate = !connected && isProtectedView;
 
   return (
     <div style={{
@@ -128,47 +131,56 @@ export default function Page() {
           {/* AnimatePresence Tab Route Cross-Fade */}
           <AnimatePresence mode="wait">
             <motion.div
-              key={currentView}
+              key={showWalletGate ? `gate-${currentView}` : currentView}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             >
-              {currentView === 'landing' && (
-                <LandingView
-                  onOpenHardwareLab={() => setActiveTab('hardware')}
-                  onOpenDashboard={() => setActiveTab('dashboard')}
-                  relayerStats={relayerStats}
+              {showWalletGate ? (
+                <WalletGateView
+                  tabName={currentView}
+                  onReturnHome={() => setActiveTab('landing')}
                 />
-              )}
+              ) : (
+                <>
+                  {currentView === 'landing' && (
+                    <LandingView
+                      onOpenHardwareLab={() => setActiveTab('hardware')}
+                      onOpenDashboard={() => setActiveTab('dashboard')}
+                      relayerStats={relayerStats}
+                    />
+                  )}
 
-              {currentView === 'dashboard' && (
-                <DashboardTab
-                  relayerStats={relayerStats}
-                  onRefreshRelayer={fetchRelayerStats}
-                />
-              )}
+                  {currentView === 'dashboard' && (
+                    <DashboardTab
+                      relayerStats={relayerStats}
+                      onRefreshRelayer={fetchRelayerStats}
+                    />
+                  )}
 
-              {currentView === 'hardware' && (
-                <HardwareLabTab
-                  relayerStats={relayerStats}
-                  onRefreshRelayer={fetchRelayerStats}
-                />
-              )}
+                  {currentView === 'hardware' && (
+                    <HardwareLabTab
+                      relayerStats={relayerStats}
+                      onRefreshRelayer={fetchRelayerStats}
+                    />
+                  )}
 
-              {currentView === 'leaderboard' && (
-                <LeaderboardTab
-                  relayerStats={relayerStats}
-                  onRefreshRelayer={fetchRelayerStats}
-                />
-              )}
+                  {currentView === 'leaderboard' && (
+                    <LeaderboardTab
+                      relayerStats={relayerStats}
+                      onRefreshRelayer={fetchRelayerStats}
+                    />
+                  )}
 
-              {(currentView === 'donation' || currentView === 'donations' || currentView === 'impact') && (
-                <DonationTab />
-              )}
+                  {(currentView === 'donation' || currentView === 'donations' || currentView === 'impact') && (
+                    <DonationTab />
+                  )}
 
-              {currentView === 'faq' && (
-                <FaqTab />
+                  {currentView === 'faq' && (
+                    <FaqTab />
+                  )}
+                </>
               )}
             </motion.div>
           </AnimatePresence>

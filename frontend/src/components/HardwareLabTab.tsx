@@ -22,10 +22,12 @@ interface HardwareLabProps {
 }
 
 export default function HardwareLabTab({ relayerStats, onRefreshRelayer }: HardwareLabProps) {
-  const { publicKey } = useWallet();
+  const { publicKey, connected } = useWallet();
   const walletKey = publicKey ? publicKey.toBase58() : 'default_guest_node';
   const [selectedNode, setSelectedNode] = useState<string>('HYDRX-NODE-101');
   const [activeViewMode, setActiveViewMode] = useState<'simulator' | 'blueprints'>('simulator');
+  const [isPairing, setIsPairing] = useState(false);
+  const [pairStatus, setPairStatus] = useState<string | null>(null);
   const deviceId = selectedNode;
 
   // Find user's synced volume from the relayer
@@ -182,11 +184,31 @@ export default function HardwareLabTab({ relayerStats, onRefreshRelayer }: Hardw
   const currentFlowLpm = (valveVal / 100) * MAX_LPM;
   const currentFlowLps = currentFlowLpm / 60;
 
-  // High-frequency meter tick (100ms)
+  // Handle pairing current node to connected wallet
+  const handlePairThisNode = async () => {
+    if (!connected || !publicKey) return;
+    setIsPairing(true);
+    setPairStatus(null);
+    try {
+      const endpoint = getRelayerUrl();
+      const res = await axios.post(`${endpoint}/api/pair-device`, {
+        deviceId,
+        residentWallet: publicKey.toBase58(),
+      });
+      setPairStatus(`Node ${deviceId} paired to wallet ${publicKey.toBase58().slice(0, 4)}..${publicKey.toBase58().slice(-4)}`);
+      onRefreshRelayer?.();
+    } catch (e: any) {
+      setPairStatus(`Pairing error: ${e.response?.data?.error || e.message}`);
+    } finally {
+      setIsPairing(false);
+    }
+  };
+
+  // High-frequency meter tick (100ms) - only ticks if wallet is connected
   useEffect(() => {
     const TICK_MS = 100;
     const interval = setInterval(() => {
-      if (tamperedRef.current) return;
+      if (!connected || !publicKey || tamperedRef.current) return;
 
       const lpm = (valveRef.current / 100) * MAX_LPM;
       const lps = lpm / 60;
@@ -203,7 +225,7 @@ export default function HardwareLabTab({ relayerStats, onRefreshRelayer }: Hardw
     }, TICK_MS);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [connected, publicKey]);
 
   // Cryptographic payload signature in Solana Base58 format
   const hashPayload = async (payload: any) => {
@@ -216,10 +238,12 @@ export default function HardwareLabTab({ relayerStats, onRefreshRelayer }: Hardw
     }
   };
 
-  // Attestation interval (800ms) matching hardware firmware transmission
+  // Attestation interval (800ms) matching hardware firmware transmission - requires wallet
   useEffect(() => {
     const ATTEST_MS = 800;
     const attestInterval = setInterval(async () => {
+      if (!connected || !publicKey) return;
+
       const delta = intervalVolumeRef.current;
       const isTampered = tamperedRef.current;
       const lps = (valveRef.current / 100) * (MAX_LPM / 60);
@@ -231,6 +255,7 @@ export default function HardwareLabTab({ relayerStats, onRefreshRelayer }: Hardw
           litersUsed: Number(delta.toFixed(2)),
           timestamp: Math.floor(Date.now() / 1000),
           tamper: isTampered,
+          residentWallet: publicKey.toBase58(),
         };
 
         setPulseLedActive(true);
@@ -240,7 +265,7 @@ export default function HardwareLabTab({ relayerStats, onRefreshRelayer }: Hardw
         let solanaTxHash = '';
 
         if (!isTampered) {
-          // Live relay to Solana
+          // Live relay to Solana with user's wallet
           try {
             const endpoint = getRelayerUrl();
             const res = await axios.post(`${endpoint}/api/telemetry`, {
@@ -249,6 +274,7 @@ export default function HardwareLabTab({ relayerStats, onRefreshRelayer }: Hardw
               timestamp: Math.floor(Date.now() / 1000),
               status: lps > 0.4 ? 'NORMAL' : 'CONSERVING',
               signature: hash,
+              residentWallet: publicKey.toBase58(),
             });
             if (res.data?.data?.txHash) {
               solanaTxHash = res.data.data.txHash;
@@ -286,7 +312,7 @@ export default function HardwareLabTab({ relayerStats, onRefreshRelayer }: Hardw
     }, ATTEST_MS);
 
     return () => clearInterval(attestInterval);
-  }, [deviceId, onRefreshRelayer]);
+  }, [deviceId, connected, publicKey, onRefreshRelayer]);
 
   const handleToggleTamper = () => {
     const nextTamper = !tampered;
@@ -601,14 +627,14 @@ export default function HardwareLabTab({ relayerStats, onRefreshRelayer }: Hardw
               min="0"
               max="100"
               value={valveVal}
-              disabled={tampered}
+              disabled={!connected || tampered}
               onChange={(e) => setValveVal(parseInt(e.target.value))}
               style={{
                 width: '100%',
                 height: '6px',
                 accentColor: '#c9a15a',
-                cursor: tampered ? 'not-allowed' : 'pointer',
-                opacity: tampered ? 0.35 : 1,
+                cursor: (!connected || tampered) ? 'not-allowed' : 'pointer',
+                opacity: (!connected || tampered) ? 0.35 : 1,
               }}
             />
 
@@ -653,12 +679,15 @@ export default function HardwareLabTab({ relayerStats, onRefreshRelayer }: Hardw
             <div style={{ display: 'flex', gap: '10px', marginTop: '16px', flexWrap: 'wrap' }}>
               <button
                 onClick={handleToggleTamper}
+                disabled={!connected}
                 className="btn-mono-ghost"
                 style={{
                   borderColor: tampered ? '#ef4444' : undefined,
                   color: tampered ? '#ef4444' : undefined,
                   fontSize: '0.84rem',
                   padding: '8px 16px',
+                  opacity: !connected ? 0.4 : 1,
+                  cursor: !connected ? 'not-allowed' : 'pointer',
                 }}
               >
                 {tampered ? 'Reseal & Reset Switch' : 'Trip Tamper Switch'}
@@ -666,12 +695,93 @@ export default function HardwareLabTab({ relayerStats, onRefreshRelayer }: Hardw
 
               <button
                 onClick={handleResetSimulation}
+                disabled={!connected}
                 className="btn-mono-ghost"
-                style={{ fontSize: '0.84rem', padding: '8px 16px', color: 'var(--text-3)' }}
+                style={{
+                  fontSize: '0.84rem',
+                  padding: '8px 16px',
+                  color: 'var(--text-3)',
+                  opacity: !connected ? 0.4 : 1,
+                  cursor: !connected ? 'not-allowed' : 'pointer',
+                }}
               >
                 Reset Simulation
               </button>
             </div>
+
+            {!connected && (
+              <div style={{
+                marginTop: '16px',
+                padding: '14px 16px',
+                background: 'rgba(239, 68, 68, 0.08)',
+                border: '1px solid rgba(239, 68, 68, 0.28)',
+                borderRadius: 'var(--radius-input)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#ef4444' }} />
+                  <span className="font-mono" style={{ fontSize: '0.78rem', color: '#f87171', fontWeight: 700 }}>
+                    SIMULATION CONTROLS LOCKED · SOLANA WALLET REQUIRED
+                  </span>
+                </div>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-3)', margin: 0, lineHeight: 1.4 }}>
+                  Connect your Solana Devnet wallet to unlock the aperture valve, stream pulses, and generate on-chain attestations.
+                </p>
+              </div>
+            )}
+
+            {connected && publicKey && (
+              <div style={{
+                marginTop: '16px',
+                padding: '12px 16px',
+                background: 'var(--surface-elevated)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-input)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                  <div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>
+                      PAIRED RESIDENT WALLET
+                    </div>
+                    <div style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-1)', fontFamily: 'var(--font-mono)' }}>
+                      {publicKey.toBase58().slice(0, 6)}...{publicKey.toBase58().slice(-6)}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <button
+                      onClick={handlePairThisNode}
+                      disabled={isPairing}
+                      className="btn-mono-ghost"
+                      style={{ padding: '6px 12px', fontSize: '0.76rem' }}
+                    >
+                      {isPairing ? 'Pairing...' : `Bind ${deviceId} to Wallet`}
+                    </button>
+
+                    <a
+                      href={`https://explorer.solana.com/address/${publicKey.toBase58()}?cluster=devnet`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-mono-ghost"
+                      style={{ padding: '6px 12px', fontSize: '0.76rem', textDecoration: 'none' }}
+                    >
+                      Explorer ↗
+                    </a>
+                  </div>
+                </div>
+
+                {pairStatus && (
+                  <div className="font-mono" style={{ fontSize: '0.76rem', color: '#4ade80' }}>
+                    {pairStatus}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -808,6 +918,16 @@ export default function HardwareLabTab({ relayerStats, onRefreshRelayer }: Hardw
                       >
                         Solana Tx: {entry.txHash.slice(0, 18)}... ↗
                       </a>
+                      {publicKey && (
+                        <a
+                          href={`https://explorer.solana.com/address/${publicKey.toBase58()}?cluster=devnet`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ color: 'var(--text-3)', textDecoration: 'none', marginLeft: 'auto' }}
+                        >
+                          Wallet: {publicKey.toBase58().slice(0, 4)}..{publicKey.toBase58().slice(-4)} ↗
+                        </a>
+                      )}
                     </div>
                   )}
                 </div>

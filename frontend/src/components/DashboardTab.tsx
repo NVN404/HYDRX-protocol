@@ -88,14 +88,17 @@ export default function DashboardTab({ relayerStats, onRefreshRelayer }: Dashboa
     setPairResult(null);
     try {
       const endpoint = getRelayerUrl();
-      await axios.post(`${endpoint}/api/pair-device`, {
+      const res = await axios.post(`${endpoint}/api/pair-device`, {
         deviceId: userDeviceId,
         residentWallet: publicKey.toBase58(),
       });
-      setPairResult(`Linked ${userDeviceId} to ${publicKey.toBase58().slice(0, 6)}...`);
+      const tx = res.data?.txHash;
+      setPairResult(
+        `Hardware node ${userDeviceId} successfully bound to ${publicKey.toBase58().slice(0, 6)}...${publicKey.toBase58().slice(-4)}${tx ? ` (Tx: ${tx.slice(0, 10)}...)` : ''}`
+      );
       onRefreshRelayer();
     } catch (e: any) {
-      setPairResult(`Pairing failed: ${e.message}`);
+      setPairResult(`Pairing failed: ${e.response?.data?.error || e.message}`);
     } finally {
       setIsPairing(false);
     }
@@ -115,6 +118,7 @@ export default function DashboardTab({ relayerStats, onRefreshRelayer }: Dashboa
         timestamp: Math.floor(Date.now() / 1000),
         signature: bs58.encode(randBytes),
         status: 'CLAIM',
+        residentWallet: publicKey.toBase58(),
       });
 
       const tx = res.data.data?.txHash;
@@ -202,11 +206,101 @@ export default function DashboardTab({ relayerStats, onRefreshRelayer }: Dashboa
         </div>
       </div>
 
-      {pairResult && (
-        <div style={{ padding: '10px 16px', background: 'var(--surface-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--radius-input)', fontSize: '0.82rem', fontFamily: 'var(--font-mono)' }}>
-          {pairResult}
+      {/* Hardware Node Onboarding & Wallet Binding Card */}
+      <div className="surface" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+              <span style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-1)' }}>
+                HARDWARE NODE ONBOARDING &middot; WALLET BINDING
+              </span>
+              <span className="pill font-mono" style={{ fontSize: '0.66rem' }}>
+                DEPIN PROTOCOL
+              </span>
+            </div>
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-3)', margin: 0, lineHeight: 1.4 }}>
+              Bind your physical water meter hardware to your connected Solana wallet to establish on-chain ownership,
+              initialize your Ephemeral Rollup PDA, and automatically route all conservation yields.
+            </p>
+          </div>
+
+          {connected && publicKey && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <a
+                href={`https://explorer.solana.com/address/${publicKey.toBase58()}?cluster=devnet`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-mono-ghost"
+                style={{ padding: '6px 14px', fontSize: '0.78rem', textDecoration: 'none' }}
+              >
+                Connected Wallet: {publicKey.toBase58().slice(0, 4)}..{publicKey.toBase58().slice(-4)} ↗
+              </a>
+            </div>
+          )}
         </div>
-      )}
+
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          flexWrap: 'wrap',
+          paddingTop: '10px',
+          borderTop: '1px solid var(--border)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span className="font-mono" style={{ fontSize: '0.8rem', color: 'var(--text-2)' }}>Select Node:</span>
+            <select
+              value={selectedDeviceId}
+              onChange={(e) => setSelectedDeviceId(e.target.value)}
+              className="font-mono"
+              style={{
+                background: 'var(--surface-elevated)',
+                border: '1px solid var(--border)',
+                color: 'var(--text-1)',
+                padding: '6px 12px',
+                borderRadius: 'var(--radius-input)',
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+              }}
+            >
+              {availableDevices.map((devId) => (
+                <option key={devId} value={devId}>
+                  {devId}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <button
+            onClick={handlePairDevice}
+            disabled={isPairing || !connected}
+            className="btn-mono-ghost"
+            style={{
+              padding: '6px 16px',
+              fontSize: '0.82rem',
+              fontWeight: 700,
+              background: 'var(--text-1)',
+              color: 'var(--canvas)',
+            }}
+          >
+            {isPairing ? 'Binding Node...' : `Claim & Bind ${selectedDeviceId} to Wallet`}
+          </button>
+        </div>
+
+        {pairResult && (
+          <div style={{
+            padding: '10px 14px',
+            background: 'var(--surface-elevated)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-input)',
+            fontSize: '0.82rem',
+            fontFamily: 'var(--font-mono)',
+            color: '#4ade80',
+          }}>
+            {pairResult}
+          </div>
+        )}
+      </div>
 
       {/* Top Row: Radial Gauge + Claim Card */}
       <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 0.85fr', gap: '20px' }}>
@@ -402,6 +496,7 @@ export default function DashboardTab({ relayerStats, onRefreshRelayer }: Dashboa
               <tr>
                 <th>Time</th>
                 <th>Device / Node</th>
+                <th>Resident Wallet</th>
                 <th>Metered Volume</th>
                 <th>Quota Status</th>
                 <th style={{ textAlign: 'right' }}>Solana Tx Hash</th>
@@ -450,6 +545,33 @@ export default function DashboardTab({ relayerStats, onRefreshRelayer }: Dashboa
                           </span>
                         )}
                       </div>
+                    </td>
+
+                    <td className="font-mono">
+                      {log.resident ? (
+                        <a
+                          href={`https://explorer.solana.com/address/${log.resident}?cluster=devnet`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            fontSize: '0.74rem',
+                            color: (publicKey && log.resident.toLowerCase() === publicKey.toBase58().toLowerCase()) ? '#00f0ff' : 'var(--text-2)',
+                            textDecoration: 'none',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                          }}
+                          title={`View ${log.resident} on Solana Explorer`}
+                        >
+                          <span>{log.resident.slice(0, 4)}..{log.resident.slice(-4)}</span>
+                          {publicKey && log.resident.toLowerCase() === publicKey.toBase58().toLowerCase() && (
+                            <span className="pill font-mono" style={{ fontSize: '0.58rem', padding: '0px 4px' }}>YOU</span>
+                          )}
+                          <span style={{ fontSize: '0.68rem' }}>↗</span>
+                        </a>
+                      ) : (
+                        <span style={{ fontSize: '0.74rem', color: 'var(--text-4)' }}>Protocol Relayer</span>
+                      )}
                     </td>
 
                     <td className="font-mono" style={{ color: 'var(--text-1)' }}>
