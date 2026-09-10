@@ -8,6 +8,9 @@
 1. [Executive Summary](#1-executive-summary)
 2. [Project Directory Structure (A to Z Map)](#2-project-directory-structure-a-to-z-map)
 3. [Core Protocol Architecture & Deployed Addresses](#3-core-protocol-architecture--deployed-addresses)
+   - 3.1 Full System Architecture Diagram
+   - 3.2 Architectural Flow & 4-Layer Data Transmission Model
+   - 3.3 Deployed Addresses & Network Endpoints
 4. [Prerequisites & Toolchain Setup](#4-prerequisites--toolchain-setup)
 5. [Local Setup & Installation Step-by-Step](#5-local-setup--installation-step-by-step)
    - 5.1 Clone & Install All Sub-Packages
@@ -103,15 +106,109 @@ magicblockz/
 ├── iot-simulator/                 # High-Frequency Multi-Node Node.js Simulator
 │   ├── package.json
 │   └── index.js                   # Simulates 8 parallel apartment nodes streaming pulses
-├── wallet-keypair.json            # Funded Solana Devnet keypair for relayer signing
-├── Anchor.toml                    # Anchor configuration (Devnet RPC, program IDs)
-├── PRESENTATION_SCRIPT.md         # Comprehensive talk track & demo pitch script
-└── README.md                      # Complete system documentation (this file)
+├── assets/                            # Architecture diagrams and system schematics
+│   └── hydrx_system_architecture.png
+├── wallet-keypair.json.example        # Example keypair format for relayer signing
+├── Anchor.toml                        # Anchor configuration (Devnet RPC, program IDs)
+└── README.md                          # Complete system documentation (this file)
 ```
 
 ---
 
 ## 3. Core Protocol Architecture & Deployed Addresses
+
+### 3.1 Full System Architecture Diagram
+
+![HydrX Protocol — Full System Architecture](./assets/hydrx_system_architecture.png)
+
+```text
++------------------------------------------------------------------------------------------------------------------------+
+|                                        HYDRX PROTOCOL - FULL SYSTEM ARCHITECTURE                                       |
++------------------------------------------------------------------------------------------------------------------------+
+|                                                                                                                        |
+|  . - - - - - - - - - - - - - .       . - - - - - - - - - - - - - - - - - - - - - - - .                                 |
+|  '       EDGE HARDWARE       '       '  SPEED LAYER - MAGICBLOCK EPHEMERAL ROLLUP    '                                 |
+|  '                           '       '                                               '                                 |
+|  '   +-------------------+   '       '   +---------------------------------------+   '                                 |
+|  '   |  HOUSEHOLD SENSOR |   '       '   |     MAGICBLOCK EPHEMERAL ROLLUP       |   '                                 |
+|  '   | ESP32 + YF-S201   |   '       '   |                                       |   '                                 |
+|  '   | Flow Sensor       |   '       '   |  record_telemetry()                   |   '                                 |
+|  '   +---------+---------+   '       '   |  ~15-45ms  |  0 gas                   |   '                                 |
+|  '             | raw flow    '       '   |  Parallel per resident                |   '                                 |
+|  '             | pulses      '       '   |  No write-lock contention             |   '                                 |
+|  '             v             '       '   +------------------+--------------------+   '                                 |
+|  '   +-------------------+   '       '                      |           ^            '                                 |
+|  '   |   RELAYER PROXY   |   '       ' - - - - - - - - - - -|- - - - - -|- - - - - - '                                 |
+|  '   | Dual-connection   |   '                              |           :                                              |
+|  '   | router            |   '           commit_resident()  |           : delegate_resident()                          |
+|  '   | localhost:3005    |---'---> ingest telemetry         |           : (initial lock)                               |
+|  '   +-------------------+   '   (solid arrow: real-time)   |           :                                              |
+|  . - - - - - - - - - - - - - .                              |           :                                              |
+|                                                             v           :                                              |
+|                              . - - - - - - - - - - - - - - -|- - - - - -:- - - - - - .       . - - - - - - - - - - - - - - - - - - - - - - - .
+|                              '     SETTLEMENT LAYER - SOLANA BASE (L1)               '       '                 MARKET LAYER                  '
+|                              '                                                       '       '                                               '
+|                              '   +-----------------------------------------------+   '       '   +-----------------+   +-----------------+   '
+|                              '   |            SOLANA BASE LAYER (L1)             |   '       '   | RESIDENT WALLET |   | ESG MARKETPLACE |   '
+|                              '   |                                               |   '       '   |                 |   |                 |   '
+|                              '   |  PoolState PDA          ResidentState PDA     |---'-------'-->| claim_tokens()  |-->| Corporations    |   '
+|                              '   |  $HYDRX Mint PDA        Delegation Program    |   ' (solid)   | $HYDRX received |   | buy & burn      |   '
+|                              '   +-----------------------------------------------+   '       '   +-----------------+   | $HYDRX          |   '
+|                              '                                                       '       '                         +--------+--------+   '
+|                              . - - - - - - - - - - - - - - - - - - - - - - - - - - - .       '                                  | issues     '
+|                                                                                              '                                  v            '
+|                                                                                              '                         +-----------------+   '
+|                                                                                              '                         |WATER RESTORATION|   '
+|                                                                                              '                         |CERTIFICATE      |   '
+|                                                                                              '                         |issued           |   '
+|                                                                                              '                         +-----------------+   '
+|                                                                                              . - - - - - - - - - - - - - - - - - - - - - - - .
+|                                                                                                                        |
+|  Data Flow Legend:                                                                                                     |
+|    Solid arrow (-->)  = Real-time data flow (telemetry pulses, relayer ingestion, claims, marketplace burning)           |
+|    Dashed arrow (- ->) = Periodic settlement / state delegation (initial delegation lock, 20-ping checkpoint commits)   |
++------------------------------------------------------------------------------------------------------------------------+
+```
+
+### 3.2 Architectural Flow & 4-Layer Data Transmission Model
+
+The HydrX architecture operates across 4 coordinated layers engineered to eliminate write-lock contention, zero out transaction costs for micro-telemetry, and deliver cryptographic verification of conserved water:
+
+#### Layer 1: Edge Hardware
+- **Household Sensor (ESP32 + YF-S201 Flow Sensor)**: Physical embedded unit attached directly to residential water mains. The Hall-effect rotor generates 450 electrical pulses per liter of water throughput. An interrupt service routine (ISR) counts pulses with microsecond resolution.
+- **Relayer Proxy (`localhost:3005` / `localhost:3001`)**: Dual-connection routing bridge that handles upstream telemetry. It buffers raw pulse counts, formats signed Solana transaction instructions, and forwards them directly to the MagicBlock Ephemeral Rollup router without requiring the resident to expose private keys on the edge device.
+- **Real-Time Ingestion**: Telemetry is streamed directly to the speed layer with sub-second transmission latency.
+
+#### Layer 2: Speed Layer (MagicBlock Ephemeral Rollup)
+- **High-Throughput Off-Chain Runtime**: Powered by MagicBlock Ephemeral Rollup validators (`https://devnet-as.magicblock.app/`).
+- **`record_telemetry(water_used_liters, duration_seconds)`**: Ingests high-frequency water consumption pings with execution latency between **15ms and 45ms** at **0 gas cost** to the resident.
+- **Zero Write-Lock Contention**: Each household's `ResidentState` PDA is executed in an isolated state container, enabling thousands of residential meters to stream simultaneous real-time pulses without bottlenecking Solana slot capacity.
+- **Rollup Delegation Lifecycle**:
+  - `delegate_resident()` *(Dashed Arrow)*: Initial lock instruction invoked on Solana Base Layer (L1) that temporarily transfers state write-authority of the `ResidentState` PDA into the Ephemeral Rollup validator runtime.
+  - `commit_resident()` *(Dashed Arrow)*: Periodic state checkpoint automatically invoked every 20 pings (or on demand) to commit cumulative water conservation metrics and unminted reward balances back to Solana L1.
+
+#### Layer 3: Settlement Layer (Solana Base L1)
+- **Immutable Protocol Anchor**: Core smart contract deployed on Solana Devnet at `8dLu65pPh6AbfDmRW5GUGqjPQuxihnpv2vWydzt98vKj`.
+- **Core Accounts & PDAs**:
+  - `PoolState PDA`: Global protocol registry tracking baseline community water consumption statistics, aggregate volume conserved, and reward parameters.
+  - `ResidentState PDA`: Base L1 record storing lifetime verified conserved liters, historical checkpoint sequences, and pending claim balances.
+  - `$HYDRX Mint PDA`: Protocol-controlled SPL token mint engineered to back 1 $HYDRX per 1,000 Liters (1 m3) of water saved, pegged to freshwater parity ($1.85 USDC per cubic meter).
+  - `Delegation Program`: The native MagicBlock delegation program (`DELeGGvXpWV2fqJUhqcF5ZSYMS4JTLjteaAMARRSaeSh`) enforcing atomic state transitions, ownership locks, and cryptographic proofs when entering or leaving the rollup.
+- **Settlement Action**: Residents invoke `claim_tokens()` *(Solid Arrow)* to mint verified `$HYDRX` tokens directly into their resident wallet based on L1-committed savings proofs.
+
+#### Layer 4: Market Layer (Verification & Corporate ESG Offsets)
+- **Resident Wallet**: Receives newly minted `$HYDRX` tokens as tangible financial rewards for verifiable water conservation.
+- **ESG Marketplace**: Decentralized trading desk where corporate entities (data centers, semiconductor manufacturers, and industrial facilities subject to EU CSRD or corporate sustainability mandates) acquire `$HYDRX` tokens.
+- **Buy & Burn Mechanism**: Corporations buy and permanently burn `$HYDRX` tokens on-chain, proving real-world freshwater neutrality.
+- **Water Restoration Certificate**: Upon token burn, the protocol issues an immutable Water Restoration Certificate recording the verified volume of water saved, the timestamp, and the permanent burn transaction signature.
+
+#### Data Flow Legend
+- **Solid Arrow (`-->`)**: Real-time continuous data flow (raw flow pulses, relayer telemetry ingestion, token claim minting, marketplace buy & burn, certificate issuance).
+- **Dashed Arrow (`- ->`)**: Periodic settlement and delegation lifecycle (initial `delegate_resident()` state lock, 20-ping `commit_resident()` checkpoint commits back to L1).
+
+---
+
+### 3.3 Deployed Addresses & Network Endpoints
 
 | Component | Network / Provider | Address / Endpoint |
 | :--- | :--- | :--- |
