@@ -4,11 +4,15 @@
   "description": "HydrX Protocol on MagicBlock Ephemeral Rollups: Sub-50ms Water Conservation DePIN",
   "main": "index.js",
   "scripts": {
+    "start": "bash start.sh",
+    "dev": "bash start.sh",
+    "stop": "bash stop.sh",
     "build": "anchor build",
     "test": "npx mocha -r ts-node/register --timeout 60000 tests/**/*.ts",
     "relayer": "node relayer/server.js",
     "simulator": "node iot-simulator/index.js",
-    "dashboard": "node dashboard/server.js"
+    "dashboard": "node dashboard/server.js",
+    "frontend": "cd frontend && npm run dev"
   },
   "keywords": [
     "solana",

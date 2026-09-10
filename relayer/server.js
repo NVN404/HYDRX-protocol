@@ -346,6 +346,44 @@ async function ensureResidentDelegated(residentPubkey) {
 }
 
 /**
+ * GET /
+ * Root service identification for cloud platform health checks
+ */
+app.get('/', (req, res) => {
+    res.json({
+        name: "HydrX MagicBlock Ephemeral Rollup Relayer Proxy",
+        status: "healthy",
+        version: "1.0.0",
+        relayerPubkey: relayerKeypair.publicKey.toBase58(),
+        network: NETWORK,
+        programId: PROGRAM_ID.toBase58(),
+        magicRouter: ROUTER_URL,
+        ephemeralRpc: DEFAULT_ER_URL,
+        endpoints: [
+            "/api/telemetry",
+            "/api/delegate",
+            "/api/commit",
+            "/api/undelegate",
+            "/api/stats",
+            "/api/claim",
+            "/api/retire"
+        ]
+    });
+});
+
+/**
+ * GET /health
+ * Dedicated health probe endpoint for Docker, Render, Railway, Kubernetes
+ */
+app.get('/health', (req, res) => {
+    res.json({
+        status: "ok",
+        uptimeSeconds: Math.floor(process.uptime()),
+        timestamp: new Date().toISOString()
+    });
+});
+
+/**
  * POST /api/telemetry
  * High-speed IoT pulse ingestion executing on MagicBlock Ephemeral Rollup
  */

@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HydrX Protocol — MagicBlock Ephemeral Rollups Real-Time Monitor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script>
+    // HARD OVERRIDE: Block any browser alert popup and route to in-page display
+    window.alert = function(msg) {
+      console.log('[POPUP SUPPRESSED]:', msg);
+      var fb = document.getElementById('deck-feedback');
+      if (fb) {
+        fb.style.display = 'block';
+        fb.innerHTML = '<span>' + msg.replace(/\n/g, '<br/>') + '</span>';
+      }
+    };
+  </script>
+  <style>
+    :root {
+      --bg: #07090e;
+      --card-bg: rgba(14, 18, 28, 0.75);
+      --card-border: rgba(0, 240, 255, 0.15);
+      --card-border-hover: rgba(0, 240, 255, 0.4);
+      --accent: #00f0ff;
+      --accent-glow: rgba(0, 240, 255, 0.25);
+      --er-green: #10b981;
+      --er-green-glow: rgba(16, 185, 129, 0.25);
+      --solana-purple: #9945FF;
+      --solana-green: #14F195;
+      --text: #e2e8f0;
+      --text-dim: #94a3b8;
+      --text-muted: #64748b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Space Grotesk', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(ellipse at top left, rgba(0, 240, 255, 0.08) 0%, transparent 60%),
+        radial-gradient(ellipse at bottom right, rgba(153, 69, 255, 0.06) 0%, transparent 60%);
+    }
+
+    .container { max-width: 1400px; margin: 0 auto; padding: 32px 24px; }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 24px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      margin-bottom: 32px;
+    }
+
+    .brand { display: flex; align-items: center; gap: 16px; }
+    .brand-logo {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, var(--accent), var(--solana-green));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+    .brand-text h1 {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      background: linear-gradient(90deg, #ffffff, var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .brand-text p { font-size: 13px; color: var(--text-dim); }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 16px;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 9999px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      color: var(--er-green);
+    }
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--er-green);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--er-green);
+      animation: pulse 1.8s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.4); opacity: 0.5; }
+    }
+
+    /* Comparison Hero */
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+    .comp-card {
+      background: var(--card-bg);
+      border-radius: 18px;
+      padding: 24px;
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      position: relative;
+      overflow: hidden;
+    }
+    .comp-card.magicblock {
+      border-color: rgba(0, 240, 255, 0.3);
+      box-shadow: 0 0 30px rgba(0, 240, 255, 0.08);
+    }
+    .comp-card.solana-l1 {
+      border-color: rgba(153, 69, 255, 0.2);
+    }
+    .card-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      display: inline-block;
+      margin-bottom: 12px;
+    }
+    .magicblock .card-tag { background: rgba(0, 240, 255, 0.15); color: var(--accent); }
+    .solana-l1 .card-tag { background: rgba(153, 69, 255, 0.15); color: var(--solana-purple); }
+
+    .comp-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px; }
+    .comp-title { font-size: 20px; font-weight: 600; }
+    .comp-stat-value {
+      font-size: 38px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .magicblock .comp-stat-value { color: var(--accent); text-shadow: 0 0 20px var(--accent-glow); }
+    .solana-l1 .comp-stat-value { color: #f43f5e; }
+
+    .metrics-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .metric-item { display: flex; flex-direction: column; gap: 4px; }
+    .metric-label { font-size: 12px; color: var(--text-muted); }
+    .metric-val { font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 600; }
+
+    /* Top Stats Grid */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      margin-bottom: 32px;
+    }
+    .stat-box {
+      background: var(--card-bg);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 20px;
+    }
+    .stat-box-title { font-size: 13px; color: var(--text-dim); margin-bottom: 8px; }
+    .stat-box-val { font-family: 'JetBrains Mono', monospace; font-size: 26px; font-weight: 700; color: #fff; }
+    .stat-box-sub { font-size: 12px; color: var(--accent); margin-top: 6px; }
+
+    /* Action Control Deck */
+    .control-deck {
+      background: var(--card-bg);
+      border: 1px solid rgba(0, 240, 255, 0.2);
+      border-radius: 16px;
+      padding: 20px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 32px;
+    }
+    .control-desc h3 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+    .control-desc p { font-size: 13px; color: var(--text-dim); }
+    .btn-group { display: flex; gap: 12px; }
+    .btn {
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: none;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #0284c7);
+      color: #000;
+      box-shadow: 0 0 15px var(--accent-glow);
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 0 25px var(--accent-glow); }
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+    .btn-secondary:hover { background: rgba(255, 255, 255, 0.14); }
+
+    /* Main Content Split: Live Feed & Apartment Units */
+    .content-split {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 24px;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Live Feed Ticker */
+    .feed-container {
+      background: var(--card-bg);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 20px;
+      height: 520px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .feed-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+    .feed-item:hover {
+      background: rgba(0, 240, 255, 0.04);
+      border-color: rgba(0, 240, 255, 0.2);
+    }
+    .feed-item.feed-commit {
+      background: rgba(217, 70, 239, 0.08);
+      border-color: rgba(217, 70, 239, 0.35);
+    }
+    .feed-item.feed-delegate {
+      background: rgba(0, 240, 255, 0.08);
+      border-color: rgba(0, 240, 255, 0.35);
+    }
+    .feed-item.feed-undelegate {
+      background: rgba(153, 69, 255, 0.08);
+      border-color: rgba(153, 69, 255, 0.35);
+    }
+    .speed-badge.speed-commit {
+      background: rgba(217, 70, 239, 0.2);
+      color: #d946ef;
+    }
+    .speed-badge.speed-l1 {
+      background: rgba(153, 69, 255, 0.2);
+      color: #c084fc;
+      border: 1px solid rgba(153, 69, 255, 0.4);
+    }
+    .feed-left { display: flex; align-items: center; gap: 12px; }
+    .speed-badge {
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 11px;
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--er-green);
+    }
+    .feed-device { color: #fff; font-weight: 600; }
+    .feed-flow { color: var(--accent); }
+    .feed-right { display: flex; align-items: center; gap: 12px; color: var(--text-dim); }
+    .feed-tx { color: #60a5fa; text-decoration: none; }
+    .feed-tx:hover { text-decoration: underline; }
+
+    /* Apartment Grid */
+    .units-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .unit-card {
+      background: var(--card-bg);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .unit-top { display: flex; justify-content: space-between; align-items: center; }
+    .unit-id { font-weight: 600; font-size: 14px; }
+    .unit-status {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--er-green);
+    }
+    .unit-status.exceeded {
+      background: rgba(244, 63, 94, 0.15);
+      color: #f43f5e;
+    }
+    .unit-stats {
+      display: flex;
+      justify-content: space-between;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+    .unit-liters { color: #fff; font-weight: 600; }
+
+    @media (max-width: 1024px) {
+      .comparison-grid, .content-split, .stats-bar { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <div class="brand-logo">ER</div>
+        <div class="brand-text">
+          <h1>HydrX Protocol on MagicBlock</h1>
+          <p>Verifiable Water Conservation DePIN · Sub-50ms Ephemeral Rollup Engine</p>
+        </div>
+      </div>
+      <div class="status-badge">
+        <span class="pulse-dot"></span>
+        <span id="er-status">ER VALIDATOR ACTIVE (devnet-as.magicblock.app)</span>
+      </div>
+    </header>
+
+    <!-- Side-by-side Benchmark -->
+    <div class="comparison-grid">
+      <!-- MagicBlock ER Card -->
+      <div class="comp-card magicblock">
+        <span class="card-tag">High-Speed Execution Layer</span>
+        <div class="comp-header">
+          <div class="comp-title">MagicBlock Ephemeral Rollup (ER)</div>
+          <div class="comp-stat-value" id="er-latency-display">~24 ms</div>
+        </div>
+        <div class="metrics-row">
+          <div class="metric-item">
+            <span class="metric-label">Transaction Fee</span>
+            <span class="metric-val" style="color: var(--er-green)">0 SOL (Gasless)</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Execution Speed</span>
+            <span class="metric-val" style="color: var(--accent)">Sub-50ms Finality</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">State Locking</span>
+            <span class="metric-val" style="color: var(--accent)">Zero Lock Contention</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Solana L1 Base Layer Card -->
+      <div class="comp-card solana-l1">
+        <span class="card-tag">Base Settlement Layer</span>
+        <div class="comp-header">
+          <div class="comp-title">Standard Solana Base Layer (L1)</div>
+          <div class="comp-stat-value">~650 ms</div>
+        </div>
+        <div class="metrics-row">
+          <div class="metric-item">
+            <span class="metric-label">Transaction Fee</span>
+            <span class="metric-val">~0.000025 SOL</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Execution Speed</span>
+            <span class="metric-val">400ms - 1500ms</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">State Locking</span>
+            <span class="metric-val" style="color: #f43f5e">Global PDA Contention</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Global Stats Bar -->
+    <div class="stats-bar">
+      <div class="stat-box">
+        <div class="stat-box-title">Total Network Volume Tracked</div>
+        <div class="stat-box-val" id="stat-total-liters">0.00 L</div>
+        <div class="stat-box-sub">Across all residential smart meters</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-box-title">Total Ephemeral Rollup Pings</div>
+        <div class="stat-box-val" id="stat-total-pings" style="color: var(--accent)">0</div>
+        <div class="stat-box-sub">Processed with zero gas fees</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-box-title">Active Metered Nodes</div>
+        <div class="stat-box-val" id="stat-active-devices">8 Units</div>
+        <div class="stat-box-sub">Streaming parallel pulses</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-box-title">Base Layer Checkpoint Commits</div>
+        <div class="stat-box-val" id="stat-commits-count" style="color: var(--solana-green)">0</div>
+        <div class="stat-box-sub">Atomic state seals to Solana L1</div>
+      </div>
+    </div>
+
+    <!-- Interactive Protocol Control Deck -->
+    <div class="control-deck">
+      <div style="flex: 1; padding-right: 20px;">
+        <div class="control-desc">
+          <h3>Interactive Ephemeral Rollup Control Deck</h3>
+          <p>Trigger state transitions, batch checkpoint commits to Solana L1, or undelegate accounts.</p>
+        </div>
+        <div id="deck-feedback" style="display: none; margin-top: 10px; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.6; word-break: break-all; padding: 10px 14px; border-radius: 6px; background: rgba(0, 240, 255, 0.1); border: 1px solid rgba(0, 240, 255, 0.3); color: #5eead4;"></div>
+      </div>
+      <div class="btn-group">
+        <button id="btn-delegate" class="btn btn-secondary" onclick="triggerDelegate()">Delegate Meter to ER</button>
+        <button id="btn-commit" class="btn btn-primary" onclick="triggerCommit()">Commit Checkpoint to L1</button>
+        <button id="btn-undelegate" class="btn btn-secondary" onclick="triggerUndelegate()">Undelegate State</button>
+      </div>
+    </div>
+
+    <!-- Main Content Split -->
+    <div class="content-split">
+      <!-- Live Feed -->
+      <div>
+        <div class="section-title">
+          <span>Live Ephemeral Rollup Telemetry Stream</span>
+          <span style="font-size: 12px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace;" id="feed-count">0 pings logged</span>
+        </div>
+        <div class="feed-container" id="feed-container">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+      <!-- Metered Apartment Units -->
+      <div>
+        <div class="section-title">
+          <span>Residential Meter Nodes (8-Apartment Complex)</span>
+        </div>
+        <div class="units-grid" id="units-container">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js?v=2.1"></script>
+</body>
+</html>

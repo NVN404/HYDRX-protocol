@@ -15,13 +15,15 @@
 5. [Local Setup & Installation Step-by-Step](#5-local-setup--installation-step-by-step)
    - 5.1 Clone & Install All Sub-Packages
    - 5.2 Wallet Keypair Setup & Devnet Funding
-6. [Master Runbook: How to Run Every Component Locally](#6-master-runbook-how-to-run-every-component-locally)
-   - Component 1: Dual-Connection Zero-Gas Relayer Proxy (`localhost:3005`)
-   - Component 2: Interactive Real-Time Performance Dashboard (`localhost:4005`)
-   - Component 3: Next.js Frontend Web Application (`localhost:3003`)
-   - Component 4: ESP32 IoT Smart Meter Firmware & Wokwi Simulator
-   - Component 5: Multi-Node High-Frequency IoT Simulator
-   - Component 6: Anchor Smart Contract Build & Test Suite
+6. [Master Runbook: How to Run the Entire Stack Locally](#6-master-runbook-how-to-run-the-entire-stack-locally)
+   - 6.1 One-Command Instant Launch (`./start.sh` or `npm start`)
+   - 6.2 Service Terminator (`./stop.sh`)
+   - 6.3 Component 1: Dual-Connection Zero-Gas Relayer Proxy (`localhost:3005`)
+   - 6.4 Component 2: Interactive Real-Time Performance Dashboard (`localhost:4005`)
+   - 6.5 Component 3: Next.js Frontend Web Application (`localhost:3000`)
+   - 6.6 Component 4: ESP32 IoT Smart Meter Firmware & Wokwi Simulator
+   - 6.7 Component 5: Multi-Node High-Frequency IoT Simulator
+   - 6.8 Component 6: Anchor Smart Contract Build & Test Suite
 7. [Comprehensive Guide to Every Frontend Page & Tab](#7-comprehensive-guide-to-every-frontend-page--tab)
    - 7.1 Landing Page & Protocol Visualizer (`/`)
    - 7.2 Resident Conservation Dashboard Tab
@@ -41,6 +43,11 @@
    - Inspecting the Resident PDA State
 10. [Performance Benchmarks: Solana L1 vs. MagicBlock ER](#10-performance-benchmarks-solana-l1-vs-magicblock-er)
 11. [Troubleshooting & Common Questions](#11-troubleshooting--common-questions)
+12. [Cloud Hosting & Production Deployment (Vercel & Render/Railway)](#12-cloud-hosting--production-deployment-vercel--renderrailway)
+   - 12.1 Why Are Frontend, Relayer, and Simulator in Separate Folders?
+   - 12.2 Hosting the Frontend Web App on Vercel
+   - 12.3 Hosting the Relayer Proxy on Render / Railway
+   - 12.4 Standalone CyberDeck Monitor on Vercel (`/cyberdeck`)
 
 ---
 
@@ -71,16 +78,22 @@ magicblockz/
 │   └── hydrx_magic.ts             # Complete Anchor mocha test suite
 ├── relayer/                       # Dual-Connection Zero-Gas Relayer Proxy
 │   ├── package.json
-│   └── server.js                  # Express API routing between Solana L1 and MagicBlock ER
+│   ├── server.js                  # Express API routing between Solana L1 and MagicBlock ER
+│   ├── Dockerfile                 # Container image specification for cloud deployment
+│   └── render.yaml                # Render.com blueprint configuration
 ├── dashboard/                     # Real-Time Monitoring & Interactive Control Deck
 │   ├── package.json
 │   ├── server.js                  # Static asset server (port 4005) with no-cache headers
 │   └── public/
 │       ├── index.html             # High-tech cyber deck UI with side-by-side benchmarks
 │       └── app.js                 # Polling logic, state transition handlers, live feed
-├── frontend/                      # Next.js 15 Web Application
+├── frontend/                      # Next.js 15 Web Application (Vercel-ready)
 │   ├── package.json
 │   ├── next.config.ts
+│   ├── vercel.json                # Vercel deployment configuration
+│   ├── public/
+│   │   ├── cyberdeck/             # Mirrored standalone performance cyber-deck UI
+│   │   └── images/                # Brand, architecture, and simulator assets
 │   └── src/
 │       ├── app/
 │       │   ├── page.tsx           # Main application shell with dynamic tab routing
@@ -106,12 +119,14 @@ magicblockz/
 ├── iot-simulator/                 # High-Frequency Multi-Node Node.js Simulator
 │   ├── package.json
 │   └── index.js                   # Simulates 8 parallel apartment nodes streaming pulses
-├── assets/                            # Architecture diagrams and system schematics
+├── assets/                        # Architecture diagrams and system schematics
 │   ├── hydrx_system_architecture.png
 │   └── wokwi_simulation_esp32.png
-├── wallet-keypair.json.example        # Example keypair format for relayer signing
-├── Anchor.toml                        # Anchor configuration (Devnet RPC, program IDs)
-└── README.md                          # Complete system documentation (this file)
+├── start.sh                       # Master one-command local stack launcher
+├── stop.sh                        # Clean service shutdown utility
+├── wallet-keypair.json.example    # Example keypair format for relayer signing
+├── Anchor.toml                    # Anchor configuration (Devnet RPC, program IDs)
+└── README.md                      # Complete system documentation (this file)
 ```
 
 ---
@@ -320,20 +335,46 @@ The relayer signs transactions on Solana Devnet (delegation, checkpoint commits,
 
 ---
 
-## 6. Master Runbook: How to Run Every Component Locally
+## 6. Master Runbook: How to Run the Entire Stack Locally
 
-The complete HydrX stack consists of 3 continuous services plus hardware simulators. Follow this sequence:
+### 6.1 One-Command Instant Launch (Recommended)
 
-```text
-Terminal 1: npm run relayer     (Port 3005) - Relayer Proxy & Rollup Router
-Terminal 2: npm run dashboard   (Port 4005) - Performance Dashboard & Control Deck
-Terminal 3: cd frontend && npm run dev (Port 3000/3003) - Next.js User App
-Terminal 4: Wokwi / npm run simulator - IoT Hardware Telemetry Stream
+Instead of opening multiple terminal windows and running separate commands, launch the entire HydrX ecosystem with a single command from the project root:
+
+```bash
+./start.sh
+```
+*(Alternatively: `npm start` or `npm run dev` from the repository root).*
+
+**What `./start.sh` executes automatically:**
+1. **Toolchain Verification**: Checks Node.js and npm versions.
+2. **Keypair Auto-Provisioning**: Detects `wallet-keypair.json` (auto-cloning from `wallet-keypair.json.example` if needed).
+3. **Port Conflict Resolution**: Checks ports 3000, 3005, and 4005, gracefully terminating any dead/zombie processes.
+4. **Dependency Resolution**: Checks and auto-installs missing dependencies across `frontend`, `relayer`, and `dashboard`.
+5. **Relayer Proxy Launch**: Starts the relayer on `http://localhost:3005` and polls until its `/health` probe confirms 200 OK.
+6. **Performance Dashboard Launch**: Starts the cyber-deck control room on `http://localhost:4005`.
+7. **Frontend Application Launch**: Boots the Next.js 15 web application on `http://localhost:3000`.
+8. **Live Unified Log Stream**: Aggregates logs in `./logs/` and live-streams them to your active terminal window.
+9. **Graceful Clean Shutdown**: Simply press `Ctrl+C` at any time to safely shut down all 3 services without leaving orphaned processes.
+
+**To launch with the 8-node apartment simulator streaming in parallel:**
+```bash
+./start.sh --sim
 ```
 
 ---
 
-### Component 1: Dual-Connection Zero-Gas Relayer Proxy
+### 6.2 Service Terminator (`./stop.sh`)
+
+If you closed your terminal or have background processes occupying ports:
+```bash
+./stop.sh
+```
+*(Or `npm run stop`). This immediately frees ports 3000, 3003, 3005, and 4005.*
+
+---
+
+### 6.3 Component 1: Dual-Connection Zero-Gas Relayer Proxy
 
 The relayer routes high-speed telemetry to MagicBlock ER and anchors state commits to Solana L1.
 
@@ -665,6 +706,94 @@ When auditing or presenting transactions in Solana Explorer:
 
 ### Q: Wokwi simulator cannot connect to `http://localhost:3005`?
 * **Fix**: Inside the Wokwi virtual machine, `localhost` refers to the ESP32 itself. Use `http://host.wokwi.internal:3005/api/telemetry` instead. This is already pre-configured in `iot-hardware/sketch.ino`.
+
+---
+
+## 12. Cloud Hosting & Production Deployment (Vercel & Render/Railway)
+
+### 12.1 Why Are Frontend, Relayer, and Simulator in Separate Folders?
+
+In a real-world DePIN (Decentralized Physical Infrastructure Network), each layer has distinct operational requirements and runtime lifecycles:
+
+| Directory | Layer Role | Target Environment | Why It Must Be Independent |
+| :--- | :--- | :--- | :--- |
+| **`frontend/`** | Web Application & User UI | **Vercel** / Static CDN | Client-side React/Next.js code executed in the resident's browser. Connects to Phantom/Solflare wallets. Does not require persistent server memory. |
+| **`relayer/`** | Rollup Bridge & TX Signer | **Render** / **Railway** / VPS | Always-on background daemon. Maintains persistent connections to MagicBlock ER routers and holds a funded Solana signing keypair. Vercel serverless functions time out after 10-60s and cannot sustain long-running stateful loops. |
+| **`iot-simulator/`** | Multi-Node Test Simulator | Local Terminal / CI | Mimics 8 physical residential buildings streaming telemetry pulses. In production, this is replaced by physical ESP32 hardware in apartments. |
+| **`dashboard/`** | CyberDeck Performance Monitor | Standalone Port 4005 / Vercel (`/cyberdeck`) | Low-level developer telemetry desk. Pre-mirrored inside `frontend/public/cyberdeck/` so it is automatically accessible in your Vercel deployment without running a separate server. |
+
+---
+
+### 12.2 Hosting the Frontend Web App on Vercel
+
+Vercel provides native, first-class support for monorepos with sub-folders. You do not need to move everything into a single directory.
+
+1. Push your code to GitHub: `https://github.com/NVN404/HYDRX-protocol`.
+2. Navigate to [vercel.com](https://vercel.com) and click **Add New... -> Project**.
+3. Import the `HYDRX-protocol` repository.
+4. In the **Configure Project** screen:
+   * **Framework Preset**: Next.js (automatically detected).
+   * **Root Directory**: Click **Edit** and select `frontend`.
+   * **Build Command**: `npm run build` (default).
+   * **Output Directory**: `.next` (default).
+5. Add the following **Environment Variables** in Vercel:
+   ```env
+   NEXT_PUBLIC_RELAYER_URL=https://your-relayer.onrender.com
+   NEXT_PUBLIC_SOLANA_RPC_URL=https://rpc.magicblock.app/devnet
+   NEXT_PUBLIC_ROUTER_URL=https://devnet-router.magicblock.app/
+   NEXT_PUBLIC_EPHEMERAL_RPC_URL=https://devnet-as.magicblock.app/
+   NEXT_PUBLIC_PROGRAM_ID=8dLu65pPh6AbfDmRW5GUGqjPQuxihnpv2vWydzt98vKj
+   ```
+   *(If your relayer is not yet hosted, leave `NEXT_PUBLIC_RELAYER_URL` empty to fallback to client-side Solana Devnet mode).*
+6. Click **Deploy**. Your frontend is now live at `https://hydrx-protocol.vercel.app`.
+
+---
+
+### 12.3 Hosting the Relayer Proxy on Render / Railway
+
+The Relayer requires an always-on Node.js container with internet egress to Solana Devnet and MagicBlock ER.
+
+#### Option A: 1-Click Deploy on Render (Recommended)
+1. Navigate to [render.com](https://render.com) and click **New + -> Web Service**.
+2. Connect your `NVN404/HYDRX-protocol` GitHub repository.
+3. Configure the service settings:
+   * **Name**: `hydrx-relayer`
+   * **Root Directory**: `relayer`
+   * **Environment**: `Node` (or `Docker` using `relayer/Dockerfile`)
+   * **Build Command**: `npm install`
+   * **Start Command**: `npm start`
+   * **Health Check Path**: `/health`
+4. Add the following **Environment Variables**:
+   * `PORT`: `10000`
+   * `NETWORK`: `devnet`
+   * `BASE_RPC_URL`: `https://rpc.magicblock.app/devnet`
+   * `ROUTER_URL`: `https://devnet-router.magicblock.app/`
+   * `EPHEMERAL_RPC_URL`: `https://devnet-as.magicblock.app/`
+   * `PROGRAM_ID`: `8dLu65pPh6AbfDmRW5GUGqjPQuxihnpv2vWydzt98vKj`
+   * `RELAYER_KEYPAIR`: Paste your keypair secret key as a JSON array string (e.g. `[142, 85, 23, ...]`) or Base58 string.
+5. Click **Create Web Service**.
+6. Once deployed, test your health check:
+   ```bash
+   curl https://hydrx-relayer.onrender.com/health
+   # Returns: {"status":"ok","uptimeSeconds":42,"timestamp":"..."}
+   ```
+
+#### Option B: Deploying on Railway
+1. Open [railway.app](https://railway.app) and select **New Project -> Deploy from GitHub repo**.
+2. Set Root Directory to `/relayer`.
+3. Railway automatically detects `relayer/Dockerfile` or `package.json`.
+4. Add the same environment variables specified above.
+5. Generate a public domain under service settings.
+
+---
+
+### 12.4 Standalone CyberDeck Monitor on Vercel (`/cyberdeck`)
+
+To view the standalone CyberDeck performance dashboard without running the local port 4005 server:
+* Navigate directly to your deployed Vercel URL at:
+  `https://your-frontend.vercel.app/cyberdeck`
+* To connect it to your hosted cloud relayer, append the relayer query parameter:
+  `https://your-frontend.vercel.app/cyberdeck?relayer=https://hydrx-relayer.onrender.com`
 
 ---
 
