@@ -107,7 +107,8 @@ magicblockz/
 │   ├── package.json
 │   └── index.js                   # Simulates 8 parallel apartment nodes streaming pulses
 ├── assets/                            # Architecture diagrams and system schematics
-│   └── hydrx_system_architecture.png
+│   ├── hydrx_system_architecture.png
+│   └── wokwi_simulation_esp32.png
 ├── wallet-keypair.json.example        # Example keypair format for relayer signing
 ├── Anchor.toml                        # Anchor configuration (Devnet RPC, program IDs)
 └── README.md                          # Complete system documentation (this file)
@@ -406,12 +407,17 @@ The complete consumer and corporate web application featuring the user conservat
 
 HydrX runs on real physical ESP32 microcontrollers as well as browser-based Wokwi circuit simulations.
 
+![HydrX ESP32 IoT Smart Meter Wokwi Simulator](./assets/wokwi_simulation_esp32.png)
+
 #### Option A: Running in Wokwi Simulation
 1. Open the project in VS Code with the **Wokwi for VS Code** extension installed.
 2. Open [`iot-hardware/diagram.json`](iot-hardware/diagram.json).
 3. Press `F1` and select **Wokwi: Start Simulator**.
-4. The virtual ESP32 connects to the virtual Wi-Fi (`Wokwi-GUEST`), boots the OLED screen, and listens for flow pulses.
-5. Click the push button or click the Hall-effect flow sensor to simulate water flow.
+4. The virtual ESP32 connects to the virtual Wi-Fi (`Wokwi-GUEST`), initializes the I2C display, and confirms active Ephemeral Rollup pipeline telemetry:
+   * **Node ID**: Shows active household node identity (e.g. `HydrX Node: 101`).
+   * **Rollup Heartbeat**: Confirms live Ephemeral Rollup connectivity (`ER: ONLINE 200 OK`).
+   * **Real-Time Telemetry**: Instantaneous water flow rate (`Flow: 0.69 L/s`) and cumulative volume (`Total: 106.95 L`).
+5. Slide the potentiometer to modulate flow rates or simulate water flow pulses in real time.
 6. The firmware immediately formats the telemetry payload and HTTP POSTs to `http://host.wokwi.internal:3005/api/telemetry` (routed to your local relayer).
 
 #### Option B: Flashing Physical ESP32 Hardware
@@ -496,6 +502,8 @@ The frontend application (`http://localhost:3003`) is divided into distinct page
 ### 7.3 IoT Hardware Lab Tab
 * **Route**: Select **Hardware Lab** from the navigation bar
 * **Purpose**: Real-time diagnostics for hardware engineers, utility operators, and auditors.
+* **Smart Meter & Circuit Simulation**:
+  ![HydrX ESP32 IoT Smart Meter Wokwi Simulator](./assets/wokwi_simulation_esp32.png)
 * **Key Features**:
   * **Live Oscilloscope Pulse Graph**: Visualizes incoming telemetry pulses and instantaneous flow rate (Liters/minute).
   * **Payload Inspector**: Shows the exact JSON payload transmitted by the ESP32 (including raw pulse count, flow duration, and cryptographic signature).
