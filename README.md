@@ -43,11 +43,12 @@
    - Inspecting the Resident PDA State
 10. [Performance Benchmarks: Solana L1 vs. MagicBlock ER](#10-performance-benchmarks-solana-l1-vs-magicblock-er)
 11. [Troubleshooting & Common Questions](#11-troubleshooting--common-questions)
-12. [Cloud Hosting & Production Deployment (Vercel & Render/Railway)](#12-cloud-hosting--production-deployment-vercel--renderrailway)
+12. [Cloud Hosting & Production Deployment (Render & Vercel)](#12-cloud-hosting--production-deployment-render--vercel)
    - 12.1 Why Are Frontend, Relayer, and Simulator in Separate Folders?
-   - 12.2 Hosting the Frontend Web App on Vercel
-   - 12.3 Hosting the Relayer Proxy on Render / Railway
-   - 12.4 Standalone CyberDeck Monitor on Vercel (`/cyberdeck`)
+   - 12.2 All-on-Render 1-Click Deployment via Blueprint (`render.yaml`)
+   - 12.3 Hosting the Frontend Web App on Vercel
+   - 12.4 Hosting the Relayer Proxy on Render / Railway
+   - 12.5 Standalone CyberDeck Monitor on Cloud (`/cyberdeck`)
 
 ---
 
@@ -724,7 +725,26 @@ In a real-world DePIN (Decentralized Physical Infrastructure Network), each laye
 
 ---
 
-### 12.2 Hosting the Frontend Web App on Vercel
+### 12.2 All-on-Render 1-Click Deployment via Blueprint (`render.yaml`)
+
+If you want to host both the **Relayer Proxy** and the **Next.js Frontend** entirely on Render under a single project dashboard, use the included [`render.yaml`](render.yaml) Blueprint:
+
+1. Push your repository to GitHub: `https://github.com/NVN404/HYDRX-protocol`.
+2. Open your [Render Dashboard](https://dashboard.render.com).
+3. Click **New + -> Blueprint**.
+4. Connect the `NVN404/HYDRX-protocol` repository.
+5. Render reads `render.yaml` and automatically configures two coordinated services:
+   * **`hydrx-relayer`**: Node.js Web Service running the MagicBlock ER Relayer Proxy.
+   * **`hydrx-frontend`**: Next.js 15 Web Service running the full HydrX frontend app.
+6. Under the `hydrx-relayer` environment settings, provide your `RELAYER_KEYPAIR` secret key array.
+7. Click **Apply**. Both services will build and deploy in parallel. Render provides live URLs for both:
+   * Frontend: `https://hydrx-frontend.onrender.com`
+   * Relayer: `https://hydrx-relayer.onrender.com`
+   * CyberDeck: `https://hydrx-frontend.onrender.com/cyberdeck`
+
+---
+
+### 12.3 Hosting the Frontend Web App on Vercel
 
 Vercel provides native, first-class support for monorepos with sub-folders. You do not need to move everything into a single directory.
 
@@ -738,7 +758,7 @@ Vercel provides native, first-class support for monorepos with sub-folders. You 
    * **Output Directory**: `.next` (default).
 5. Add the following **Environment Variables** in Vercel:
    ```env
-   NEXT_PUBLIC_RELAYER_URL=https://your-relayer.onrender.com
+   NEXT_PUBLIC_RELAYER_URL=https://hydrx-relayer.onrender.com
    NEXT_PUBLIC_SOLANA_RPC_URL=https://rpc.magicblock.app/devnet
    NEXT_PUBLIC_ROUTER_URL=https://devnet-router.magicblock.app/
    NEXT_PUBLIC_EPHEMERAL_RPC_URL=https://devnet-as.magicblock.app/
@@ -749,7 +769,7 @@ Vercel provides native, first-class support for monorepos with sub-folders. You 
 
 ---
 
-### 12.3 Hosting the Relayer Proxy on Render / Railway
+### 12.4 Hosting the Relayer Proxy on Render / Railway
 
 The Relayer requires an always-on Node.js container with internet egress to Solana Devnet and MagicBlock ER.
 
@@ -787,13 +807,13 @@ The Relayer requires an always-on Node.js container with internet egress to Sola
 
 ---
 
-### 12.4 Standalone CyberDeck Monitor on Vercel (`/cyberdeck`)
+### 12.5 Standalone CyberDeck Monitor on Cloud (`/cyberdeck`)
 
 To view the standalone CyberDeck performance dashboard without running the local port 4005 server:
-* Navigate directly to your deployed Vercel URL at:
-  `https://your-frontend.vercel.app/cyberdeck`
+* Navigate directly to your deployed cloud URL at:
+  `https://your-frontend.onrender.com/cyberdeck` (or on Vercel)
 * To connect it to your hosted cloud relayer, append the relayer query parameter:
-  `https://your-frontend.vercel.app/cyberdeck?relayer=https://hydrx-relayer.onrender.com`
+  `https://your-frontend.onrender.com/cyberdeck?relayer=https://hydrx-relayer.onrender.com`
 
 ---
 
