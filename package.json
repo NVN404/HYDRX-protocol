@@ -1,0 +1,43 @@
+{
+  "name": "hydrx-magicblockz",
+  "version": "1.0.0",
+  "description": "HydrX Protocol on MagicBlock Ephemeral Rollups: Sub-50ms Water Conservation DePIN",
+  "main": "index.js",
+  "scripts": {
+    "build": "anchor build",
+    "test": "npx mocha -r ts-node/register --timeout 60000 tests/**/*.ts",
+    "relayer": "node relayer/server.js",
+    "simulator": "node iot-simulator/index.js",
+    "dashboard": "node dashboard/server.js"
+  },
+  "keywords": [
+    "solana",
+    "depin",
+    "magicblock",
+    "ephemeral-rollups",
+    "water-conservation"
+  ],
+  "author": "HydrX Protocol Core Engineering",
+  "license": "MIT",
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.31.1",
+    "@magicblock-labs/ephemeral-rollups-sdk": "0.15.5",
+    "@solana/spl-token": "^0.4.9",
+    "@solana/web3.js": "^1.98.0",
+    "axios": "^1.7.2",
+    "bs58": "^5.0.0",
+    "chalk": "^4.1.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.3.16",
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^20.12.7",
+    "chai": "^4.3.7",
+    "mocha": "^10.4.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  }
+}

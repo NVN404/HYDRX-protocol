@@ -1,0 +1,23 @@
+[toolchain]
+anchor_version = "0.31.1"
+solana_version = "3.1.9"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.localnet]
+hydrx_magic = "8dLu65pPh6AbfDmRW5GUGqjPQuxihnpv2vWydzt98vKj"
+
+[programs.devnet]
+hydrx_magic = "8dLu65pPh6AbfDmRW5GUGqjPQuxihnpv2vWydzt98vKj"
+
+[registry]
+url = "https://api.apr.dev"
+
+[provider]
+cluster = "devnet"
+wallet = "../wallet-keypair.json"
+
+[scripts]
+test = "npx mocha -r ts-node/register --timeout 60000 tests/**/*.ts"

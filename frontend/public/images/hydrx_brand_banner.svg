@@ -1,0 +1,82 @@
+<svg width="1920" height="1080" viewBox="0 0 1920 1080" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background: Pure Minimalist Matte Black -->
+  <rect width="1920" height="1080" fill="#09090b"/>
+
+  <!-- Precision Architectural Grid (0.05 opacity) -->
+  <defs>
+    <pattern id="grid" width="80" height="80" patternUnits="userSpaceOnUse">
+      <path d="M 80 0 L 0 0 0 80" fill="none" stroke="#ffffff" stroke-width="0.75" stroke-opacity="0.05"/>
+      <circle cx="80" cy="80" r="1.5" fill="#ffffff" fill-opacity="0.12"/>
+    </pattern>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#grid)"/>
+
+  <!-- Top Metadata Bar -->
+  <g transform="translate(120, 100)">
+    <text x="0" y="0" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="700" letter-spacing="0.25em">HYDRX SPECIFICATION MANUAL // v1.0.0</text>
+    <text x="1680" y="0" fill="#71717a" font-family="monospace" font-size="12" text-anchor="end">SOLANA SEALEVEL DEPIN // CORE PROTOCOL</text>
+    <line x1="0" y1="20" x2="1680" y2="20" stroke="#27272a" stroke-width="1"/>
+  </g>
+
+  <!-- Central Visual Section: Hero Mark & Technical Wireframe -->
+  <g transform="translate(120, 240)">
+    <!-- LEFT: Giant Razor-Sharp Minimalist Monogram -->
+    <g transform="translate(40, 40) scale(4.8)">
+      <!-- Left Vertical Structural Pillar -->
+      <rect x="12" y="10" width="8" height="44" rx="4" fill="#ffffff"/>
+
+      <!-- Right Vertical Structural Pillar -->
+      <rect x="44" y="10" width="8" height="44" rx="4" fill="#ffffff"/>
+
+      <!-- Diagonal 1: Continuous Top-Left to Bottom-Right -->
+      <path d="M16 16L48 48" stroke="#ffffff" stroke-width="8" stroke-linecap="round"/>
+
+      <!-- Diagonal 2: Ascending with precision negative space clearance -->
+      <path d="M16 48L26.5 37.5" stroke="#ffffff" stroke-width="8" stroke-linecap="round"/>
+      <path d="M37.5 26.5L48 16" stroke="#ffffff" stroke-width="8" stroke-linecap="round"/>
+
+      <!-- Precision Central Optical Node -->
+      <circle cx="32" cy="32" r="2.8" fill="#ffffff"/>
+    </g>
+
+    <!-- RIGHT: Minimalist Swiss Typography & Protocol Parameters -->
+    <g transform="translate(560, 40)">
+      <text x="0" y="60" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="64" font-weight="800" letter-spacing="-0.04em">HydrX</text>
+      <text x="210" y="60" fill="#a1a1aa" font-family="system-ui, -apple-system, sans-serif" font-size="64" font-weight="300" letter-spacing="-0.04em">Protocol</text>
+      
+      <text x="0" y="105" fill="#a1a1aa" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="400" letter-spacing="-0.01em">
+        Verifiable Global Freshwater Conservation DePIN on Solana
+      </text>
+
+      <!-- Technical Spec Callout Cards (Minimalist Wireframe Boxes) -->
+      <g transform="translate(0, 160)">
+        <!-- Box 1 -->
+        <rect x="0" y="0" width="260" height="110" rx="4" fill="#18181b" stroke="#27272a" stroke-width="1"/>
+        <text x="20" y="32" fill="#71717a" font-family="monospace" font-size="10" letter-spacing="0.1em">INTRINSIC PARITY</text>
+        <text x="20" y="64" fill="#ffffff" font-family="monospace" font-size="24" font-weight="800">1 m³ = 1 $HYDRX</text>
+        <text x="20" y="88" fill="#a1a1aa" font-family="system-ui, sans-serif" font-size="12">1,000 Liters Conserved Ground Water</text>
+
+        <!-- Box 2 -->
+        <rect x="280" y="0" width="260" height="110" rx="4" fill="#18181b" stroke="#27272a" stroke-width="1"/>
+        <text x="300" y="32" fill="#71717a" font-family="monospace" font-size="10" letter-spacing="0.1em">METERING HARDWARE</text>
+        <text x="300" y="64" fill="#ffffff" font-family="monospace" font-size="24" font-weight="800">&lt;$10 BOM / IP68</text>
+        <text x="300" y="88" fill="#a1a1aa" font-family="system-ui, sans-serif" font-size="12">ESP32 + Hall-Effect Pulse Sensor</text>
+
+        <!-- Box 3 -->
+        <rect x="560" y="0" width="260" height="110" rx="4" fill="#18181b" stroke="#27272a" stroke-width="1"/>
+        <text x="580" y="32" fill="#71717a" font-family="monospace" font-size="10" letter-spacing="0.1em">AUDIT STANDARDS</text>
+        <text x="580" y="64" fill="#ffffff" font-family="monospace" font-size="24" font-weight="800">GS4GG &amp; ISO 14046</text>
+        <text x="580" y="88" fill="#a1a1aa" font-family="system-ui, sans-serif" font-size="12">Permanent On-Chain SPL Token Burn</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- Bottom Technical Engineering Footer -->
+  <g transform="translate(120, 960)">
+    <line x1="0" y1="0" x2="1680" y2="0" stroke="#27272a" stroke-width="1"/>
+    <text x="0" y="30" fill="#71717a" font-family="monospace" font-size="11">NODE CLUSTER // 12.9716° N, 77.5946° E</text>
+    <text x="560" y="30" fill="#71717a" font-family="monospace" font-size="11">RELAYER: ZERO-GAS SPONSORED PROXY</text>
+    <text x="1120" y="30" fill="#71717a" font-family="monospace" font-size="11">NETWORK: SOLANA DEVNET [CONFIRMED]</text>
+    <text x="1680" y="30" fill="#ffffff" font-family="monospace" font-size="11" text-anchor="end">HYDRX.NETWORK</text>
+  </g>
+</svg>

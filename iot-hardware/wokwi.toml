@@ -1,0 +1,9 @@
+# If you're using PlatformIO:
+[wokwi]
+version = 1
+firmware = '.pio/build/esp32dev/firmware.bin'
+elf = '.pio/build/esp32dev/firmware.elf'
+
+# If you're using Arduino CLI instead, swap to:
+# firmware = 'build/esp32.esp32.esp32/JalNode.ino.bin'
+# elf = 'build/esp32.esp32.esp32/JalNode.ino.elf'

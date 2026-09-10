@@ -1,0 +1,1302 @@
+{
+  "address": "8dLu65pPh6AbfDmRW5GUGqjPQuxihnpv2vWydzt98vKj",
+  "metadata": {
+    "name": "hydrx_magic",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "HydrX Protocol on MagicBlock Ephemeral Rollups: Sub-50ms Water Conservation DePIN"
+  },
+  "instructions": [
+    {
+      "name": "burn_and_retire",
+      "docs": [
+        "* @notice Corporate ESG Water Positive Retirement: Burns $HYDRX tokens with verifiable memo."
+      ],
+      "discriminator": [
+        105,
+        38,
+        95,
+        69,
+        224,
+        106,
+        230,
+        175
+      ],
+      "accounts": [
+        {
+          "name": "pool_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_mint",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  121,
+                  100,
+                  114,
+                  120,
+                  95,
+                  109,
+                  105,
+                  110,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "user_token_account",
+          "writable": true
+        },
+        {
+          "name": "user",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        },
+        {
+          "name": "cert_memo",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "claim_tokens",
+      "docs": [
+        "* @notice Allows residents to mint and claim accrued $HYDRX SPL tokens into their ATA."
+      ],
+      "discriminator": [
+        108,
+        216,
+        210,
+        231,
+        0,
+        212,
+        42,
+        64
+      ],
+      "accounts": [
+        {
+          "name": "pool_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_mint",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  121,
+                  100,
+                  114,
+                  120,
+                  95,
+                  109,
+                  105,
+                  110,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "resident_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  115,
+                  105,
+                  100,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "resident"
+              }
+            ]
+          }
+        },
+        {
+          "name": "resident_token_account",
+          "writable": true
+        },
+        {
+          "name": "resident",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "resident_state"
+          ]
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "commit_resident",
+      "docs": [
+        "* @notice Commits the delegated resident state from ER back to Solana Base Layer (L1).\n     * Keeps the account delegated for continued high-frequency ER execution."
+      ],
+      "discriminator": [
+        164,
+        73,
+        21,
+        213,
+        219,
+        6,
+        73,
+        154
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "resident_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  115,
+                  105,
+                  100,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "resident_state.resident",
+                "account": "ResidentState"
+              }
+            ]
+          }
+        },
+        {
+          "name": "magic_program",
+          "address": "Magic11111111111111111111111111111111111111"
+        },
+        {
+          "name": "magic_context",
+          "writable": true,
+          "address": "MagicContext1111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "delegate_resident",
+      "docs": [
+        "* @notice Delegates a resident state account to the MagicBlock Ephemeral Rollup (executed on Base Layer)."
+      ],
+      "discriminator": [
+        17,
+        41,
+        193,
+        72,
+        212,
+        69,
+        88,
+        252
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "resident"
+        },
+        {
+          "name": "buffer_resident_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  117,
+                  102,
+                  102,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "resident_state"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                113,
+                81,
+                55,
+                103,
+                117,
+                237,
+                42,
+                141,
+                137,
+                230,
+                183,
+                64,
+                149,
+                70,
+                225,
+                186,
+                167,
+                187,
+                207,
+                96,
+                18,
+                51,
+                6,
+                99,
+                195,
+                199,
+                248,
+                198,
+                108,
+                91,
+                63,
+                106
+              ]
+            }
+          }
+        },
+        {
+          "name": "delegation_record_resident_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  101,
+                  108,
+                  101,
+                  103,
+                  97,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "resident_state"
+              }
+            ],
+            "program": {
+              "kind": "account",
+              "path": "delegation_program"
+            }
+          }
+        },
+        {
+          "name": "delegation_metadata_resident_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  100,
+                  101,
+                  108,
+                  101,
+                  103,
+                  97,
+                  116,
+                  105,
+                  111,
+                  110,
+                  45,
+                  109,
+                  101,
+                  116,
+                  97,
+                  100,
+                  97,
+                  116,
+                  97
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "resident_state"
+              }
+            ],
+            "program": {
+              "kind": "account",
+              "path": "delegation_program"
+            }
+          }
+        },
+        {
+          "name": "resident_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  115,
+                  105,
+                  100,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "resident"
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner_program",
+          "address": "8dLu65pPh6AbfDmRW5GUGqjPQuxihnpv2vWydzt98vKj"
+        },
+        {
+          "name": "delegation_program",
+          "address": "DELeGGvXpWV2fqJUhqcF5ZSYMS4JTLjteaAMARRSaeSh"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "initialize_pool",
+      "docs": [
+        "* @notice Initializes the global HydrX pool state and creates the $HYDRX token mint PDA on Solana base layer."
+      ],
+      "discriminator": [
+        95,
+        180,
+        10,
+        172,
+        84,
+        174,
+        232,
+        40
+      ],
+      "accounts": [
+        {
+          "name": "pool_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_mint",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  121,
+                  100,
+                  114,
+                  120,
+                  95,
+                  109,
+                  105,
+                  110,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "relayer"
+        },
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "benchmark_flow_scaled",
+          "type": {
+            "option": "u64"
+          }
+        }
+      ]
+    },
+    {
+      "name": "initialize_resident",
+      "docs": [
+        "* @notice Pre-initializes a resident state account on base layer before delegation."
+      ],
+      "discriminator": [
+        58,
+        90,
+        126,
+        241,
+        121,
+        129,
+        142,
+        156
+      ],
+      "accounts": [
+        {
+          "name": "resident_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  115,
+                  105,
+                  100,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "resident"
+              }
+            ]
+          }
+        },
+        {
+          "name": "resident"
+        },
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "process_undelegation",
+      "discriminator": [
+        196,
+        28,
+        41,
+        206,
+        48,
+        37,
+        51,
+        167
+      ],
+      "accounts": [
+        {
+          "name": "base_account",
+          "writable": true
+        },
+        {
+          "name": "buffer",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  110,
+                  100,
+                  101,
+                  108,
+                  101,
+                  103,
+                  97,
+                  116,
+                  101,
+                  45,
+                  98,
+                  117,
+                  102,
+                  102,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "base_account"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                181,
+                183,
+                0,
+                225,
+                242,
+                87,
+                58,
+                192,
+                204,
+                6,
+                34,
+                1,
+                52,
+                74,
+                207,
+                151,
+                184,
+                53,
+                6,
+                235,
+                140,
+                229,
+                25,
+                152,
+                204,
+                98,
+                126,
+                24,
+                147,
+                128,
+                167,
+                62
+              ]
+            }
+          }
+        },
+        {
+          "name": "payer",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "account_seeds",
+          "type": {
+            "vec": "bytes"
+          }
+        }
+      ]
+    },
+    {
+      "name": "record_telemetry",
+      "docs": [
+        "* @notice High-Frequency Ingestion of IoT water pulse telemetry on the Ephemeral Rollup.\n     * Executes at sub-50ms latency with zero gas fees.\n     * Updates ResidentState without write-locking the global pool PDA!"
+      ],
+      "discriminator": [
+        42,
+        253,
+        255,
+        103,
+        185,
+        29,
+        208,
+        94
+      ],
+      "accounts": [
+        {
+          "name": "resident_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  115,
+                  105,
+                  100,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "resident"
+              }
+            ]
+          }
+        },
+        {
+          "name": "resident"
+        },
+        {
+          "name": "relayer",
+          "writable": true,
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "liters_scaled",
+          "type": "u64"
+        },
+        {
+          "name": "benchmark_flow_scaled",
+          "type": {
+            "option": "u64"
+          }
+        }
+      ]
+    },
+    {
+      "name": "set_relayer",
+      "docs": [
+        "* @notice Updates the authorized relayer address."
+      ],
+      "discriminator": [
+        23,
+        243,
+        33,
+        88,
+        110,
+        84,
+        196,
+        37
+      ],
+      "accounts": [
+        {
+          "name": "pool_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "pool_state"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "new_relayer",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "sync_network_pool",
+      "docs": [
+        "* @notice Syncs cumulative committed volume to the global PoolState on Solana Base Layer."
+      ],
+      "discriminator": [
+        200,
+        252,
+        136,
+        55,
+        24,
+        113,
+        107,
+        132
+      ],
+      "accounts": [
+        {
+          "name": "pool_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "relayer",
+          "signer": true
+        }
+      ],
+      "args": [
+        {
+          "name": "liters_delta_scaled",
+          "type": "u64"
+        },
+        {
+          "name": "pings_delta",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "undelegate_resident",
+      "docs": [
+        "* @notice Undelegates the resident state account, committing final state and returning ownership to Base Layer."
+      ],
+      "discriminator": [
+        170,
+        94,
+        197,
+        207,
+        220,
+        30,
+        127,
+        81
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "resident_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  115,
+                  105,
+                  100,
+                  101,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "resident_state.resident",
+                "account": "ResidentState"
+              }
+            ]
+          }
+        },
+        {
+          "name": "magic_program",
+          "address": "Magic11111111111111111111111111111111111111"
+        },
+        {
+          "name": "magic_context",
+          "writable": true,
+          "address": "MagicContext1111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    }
+  ],
+  "accounts": [
+    {
+      "name": "PoolState",
+      "discriminator": [
+        247,
+        237,
+        227,
+        245,
+        215,
+        195,
+        222,
+        70
+      ]
+    },
+    {
+      "name": "ResidentState",
+      "discriminator": [
+        252,
+        143,
+        157,
+        93,
+        201,
+        161,
+        36,
+        17
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "RelayerUpdated",
+      "discriminator": [
+        166,
+        12,
+        250,
+        34,
+        211,
+        198,
+        204,
+        222
+      ]
+    },
+    {
+      "name": "RewardsAccrued",
+      "discriminator": [
+        33,
+        15,
+        54,
+        214,
+        98,
+        95,
+        10,
+        34
+      ]
+    },
+    {
+      "name": "TelemetryRecorded",
+      "discriminator": [
+        181,
+        188,
+        43,
+        19,
+        80,
+        11,
+        77,
+        112
+      ]
+    },
+    {
+      "name": "TokensClaimed",
+      "discriminator": [
+        25,
+        128,
+        244,
+        55,
+        241,
+        136,
+        200,
+        91
+      ]
+    },
+    {
+      "name": "TokensRetired",
+      "discriminator": [
+        136,
+        35,
+        19,
+        192,
+        104,
+        54,
+        198,
+        20
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "UnauthorizedRelayer",
+      "msg": "Only the authorized relayer or admin may record telemetry."
+    },
+    {
+      "code": 6001,
+      "name": "MathOverflow",
+      "msg": "Arithmetic operation resulted in an overflow."
+    },
+    {
+      "code": 6002,
+      "name": "NoPendingRewards",
+      "msg": "No pending $HYDRX rewards available to claim."
+    },
+    {
+      "code": 6003,
+      "name": "MemoTooLong",
+      "msg": "ESG certificate retirement memo exceeds maximum 128 characters."
+    },
+    {
+      "code": 6004,
+      "name": "AccountNotDelegated",
+      "msg": "Resident account is not currently delegated to the Ephemeral Rollup."
+    },
+    {
+      "code": 6005,
+      "name": "InvalidCommitment",
+      "msg": "Commit verification failed: invalid commitment parameters."
+    },
+    {
+      "code": 6006,
+      "name": "InvalidAuthority",
+      "msg": "Invalid authority signature for instruction."
+    }
+  ],
+  "types": [
+    {
+      "name": "PoolState",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "relayer",
+            "type": "pubkey"
+          },
+          {
+            "name": "token_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint_bump",
+            "type": "u8"
+          },
+          {
+            "name": "pool_bump",
+            "type": "u8"
+          },
+          {
+            "name": "benchmark_flow_scaled",
+            "type": "u64"
+          },
+          {
+            "name": "reward_multiplier",
+            "type": "u64"
+          },
+          {
+            "name": "total_network_liters_scaled",
+            "type": "u64"
+          },
+          {
+            "name": "total_telemetries_logged",
+            "type": "u64"
+          },
+          {
+            "name": "total_jal_minted",
+            "type": "u64"
+          },
+          {
+            "name": "total_jal_retired",
+            "type": "u64"
+          },
+          {
+            "name": "padding",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "RelayerUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "old_relayer",
+            "type": "pubkey"
+          },
+          {
+            "name": "new_relayer",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ResidentState",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "resident",
+            "type": "pubkey"
+          },
+          {
+            "name": "total_liters_scaled",
+            "type": "u64"
+          },
+          {
+            "name": "current_day_usage",
+            "type": "u64"
+          },
+          {
+            "name": "last_update_timestamp",
+            "type": "i64"
+          },
+          {
+            "name": "pending_jal_rewards",
+            "type": "u64"
+          },
+          {
+            "name": "total_jal_claimed",
+            "type": "u64"
+          },
+          {
+            "name": "telemetries_logged",
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "is_delegated",
+            "type": "bool"
+          },
+          {
+            "name": "uncommitted_pings",
+            "type": "u32"
+          },
+          {
+            "name": "uncommitted_liters_scaled",
+            "type": "u64"
+          },
+          {
+            "name": "padding",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "RewardsAccrued",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "resident",
+            "type": "pubkey"
+          },
+          {
+            "name": "reward_units",
+            "type": "u64"
+          },
+          {
+            "name": "total_pending",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TelemetryRecorded",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "resident",
+            "type": "pubkey"
+          },
+          {
+            "name": "liters_scaled",
+            "type": "u64"
+          },
+          {
+            "name": "total_liters_scaled",
+            "type": "u64"
+          },
+          {
+            "name": "reward_units",
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TokensClaimed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "resident",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TokensRetired",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "beneficiary",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "cert_memo",
+            "type": "string"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    }
+  ]
+}

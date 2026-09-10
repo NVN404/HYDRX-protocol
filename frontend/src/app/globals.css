@@ -1,0 +1,554 @@
+/* HydrX Protocol — Strict Monochrome Design System (Dark & Light Mode)
+   Inspired by Linear, Vercel, Arc, Stripe Five-Figure Editorial Minimalism
+   Zero non-grayscale colors across all states, badges, charts, and buttons. */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import url('@solana/wallet-adapter-react-ui/styles.css');
+
+/* ==========================================================================
+   THEME TOKENS: DARK (DEFAULT) & LIGHT
+   ========================================================================== */
+
+:root, [data-theme="dark"] {
+  --canvas: #000000;
+  --surface: #0a0a0a;
+  --surface-elevated: #141414;
+  --surface-hover: #1f1f1f;
+
+  --border: rgba(255, 255, 255, 0.1);
+  --border-hover: rgba(255, 255, 255, 0.35);
+  --border-strong: rgba(255, 255, 255, 0.6);
+
+  --text-1: #ffffff;
+  --text-2: #a1a1aa;
+  --text-3: #71717a;
+  --text-4: #52525b;
+
+  --btn-primary-bg: #ffffff;
+  --btn-primary-text: #000000;
+  --btn-primary-hover: #e4e4e7;
+
+  --badge-bg: rgba(255, 255, 255, 0.06);
+  --badge-border: rgba(255, 255, 255, 0.15);
+  --badge-text: #ffffff;
+
+  --gauge-track: rgba(255, 255, 255, 0.1);
+  --gauge-fill: #ffffff;
+
+  --wave-stroke-1: rgba(255, 255, 255, 0.25);
+  --wave-stroke-2: rgba(255, 255, 255, 0.15);
+  --wave-stroke-3: rgba(255, 255, 255, 0.1);
+
+  --pulse-dot: #ffffff;
+  --noise-opacity: 0.035;
+
+  --mb-hero-bg: linear-gradient(135deg, rgba(121, 40, 202, 0.16) 0%, rgba(0, 242, 254, 0.08) 50%, rgba(0, 255, 163, 0.06) 100%), #08080f;
+  --mb-hero-border: rgba(121, 40, 202, 0.35);
+  --mb-hero-shadow: 0 20px 60px -15px rgba(121, 40, 202, 0.25);
+  --mb-hero-title: #ffffff;
+  --mb-hero-text: rgba(255, 255, 255, 0.82);
+  --mb-hero-label: rgba(255, 255, 255, 0.6);
+  --mb-hero-metric-pings: #ffffff;
+  --mb-hero-metric-latency: #00FFA3;
+  --mb-hero-metric-gas: #00F2FE;
+  --mb-hero-metric-commits: #DC1FFF;
+  --mb-hero-badge-bg: rgba(0, 242, 254, 0.12);
+  --mb-hero-badge-border: rgba(0, 242, 254, 0.35);
+  --mb-hero-badge-color: #00F2FE;
+  --mb-hero-pill-bg: rgba(10, 14, 23, 0.75);
+  --mb-hero-pill-border: rgba(255, 255, 255, 0.12);
+  --mb-hero-divider: rgba(255, 255, 255, 0.1);
+  --mb-hero-glow-1: rgba(0, 242, 254, 0.2);
+  --mb-hero-glow-2: rgba(121, 40, 202, 0.25);
+  --mb-hero-grad: linear-gradient(90deg, #00F2FE 0%, #a855f7 50%, #00FFA3 100%);
+
+  --radius-card: 12px;
+  --radius-button: 8px;
+  --radius-input: 8px;
+  --radius-pill: 9999px;
+
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+[data-theme="light"] {
+  --canvas: #ffffff;
+  --surface: #f9f9fb;
+  --surface-elevated: #f4f4f5;
+  --surface-hover: #e4e4e7;
+
+  --border: rgba(0, 0, 0, 0.1);
+  --border-hover: rgba(0, 0, 0, 0.35);
+  --border-strong: rgba(0, 0, 0, 0.6);
+
+  --text-1: #09090b;
+  --text-2: #52525b;
+  --text-3: #71717a;
+  --text-4: #a1a1aa;
+
+  --btn-primary-bg: #09090b;
+  --btn-primary-text: #ffffff;
+  --btn-primary-hover: #27272a;
+
+  --badge-bg: rgba(0, 0, 0, 0.05);
+  --badge-border: rgba(0, 0, 0, 0.15);
+  --badge-text: #09090b;
+
+  --gauge-track: rgba(0, 0, 0, 0.08);
+  --gauge-fill: #09090b;
+
+  --wave-stroke-1: rgba(0, 0, 0, 0.2);
+  --wave-stroke-2: rgba(0, 0, 0, 0.12);
+  --wave-stroke-3: rgba(0, 0, 0, 0.08);
+
+  --pulse-dot: #09090b;
+  --noise-opacity: 0.02;
+
+  --mb-hero-bg: linear-gradient(135deg, rgba(121, 40, 202, 0.06) 0%, rgba(2, 132, 199, 0.05) 50%, rgba(16, 185, 129, 0.04) 100%), #ffffff;
+  --mb-hero-border: rgba(121, 40, 202, 0.22);
+  --mb-hero-shadow: 0 20px 50px -12px rgba(121, 40, 202, 0.1), 0 2px 12px rgba(0, 0, 0, 0.04);
+  --mb-hero-title: #09090b;
+  --mb-hero-text: #52525b;
+  --mb-hero-label: #71717a;
+  --mb-hero-metric-pings: #09090b;
+  --mb-hero-metric-latency: #059669;
+  --mb-hero-metric-gas: #0284c7;
+  --mb-hero-metric-commits: #7c3aed;
+  --mb-hero-badge-bg: rgba(2, 132, 199, 0.08);
+  --mb-hero-badge-border: rgba(2, 132, 199, 0.28);
+  --mb-hero-badge-color: #0284c7;
+  --mb-hero-pill-bg: rgba(244, 244, 245, 0.92);
+  --mb-hero-pill-border: rgba(0, 0, 0, 0.1);
+  --mb-hero-divider: rgba(0, 0, 0, 0.08);
+  --mb-hero-glow-1: rgba(2, 132, 199, 0.08);
+  --mb-hero-glow-2: rgba(121, 40, 202, 0.08);
+  --mb-hero-grad: linear-gradient(90deg, #0284c7 0%, #7c3aed 50%, #059669 100%);
+}
+
+[data-theme="aqua"] {
+  --canvas: #eaf7fc;
+  --surface: #ffffff;
+  --surface-elevated: #f0faff;
+  --surface-hover: #e0f2fe;
+
+  --border: rgba(2, 132, 199, 0.22);
+  --border-hover: rgba(2, 132, 199, 0.48);
+  --border-strong: rgba(2, 132, 199, 0.85);
+
+  --text-1: #032b44;
+  --text-2: #0369a1;
+  --text-3: #0284c7;
+  --text-4: #0ea5e9;
+
+  --btn-primary-bg: #0284c7;
+  --btn-primary-text: #ffffff;
+  --btn-primary-hover: #0369a1;
+
+  --badge-bg: rgba(14, 165, 233, 0.12);
+  --badge-border: rgba(14, 165, 233, 0.35);
+  --badge-text: #0284c7;
+
+  --gauge-track: rgba(14, 165, 233, 0.2);
+  --gauge-fill: #0284c7;
+
+  --wave-stroke-1: rgba(2, 132, 199, 0.35);
+  --wave-stroke-2: rgba(14, 165, 233, 0.25);
+  --wave-stroke-3: rgba(56, 189, 248, 0.2);
+
+  --pulse-dot: #0284c7;
+  --noise-opacity: 0.02;
+
+  --mb-hero-bg: linear-gradient(135deg, rgba(2, 132, 199, 0.08) 0%, rgba(14, 165, 233, 0.06) 50%, rgba(56, 189, 248, 0.04) 100%), #ffffff;
+  --mb-hero-border: rgba(2, 132, 199, 0.28);
+  --mb-hero-shadow: 0 20px 50px -12px rgba(2, 132, 199, 0.15), 0 2px 12px rgba(2, 132, 199, 0.04);
+  --mb-hero-title: #032b44;
+  --mb-hero-text: #0369a1;
+  --mb-hero-label: #0284c7;
+  --mb-hero-metric-pings: #032b44;
+  --mb-hero-metric-latency: #059669;
+  --mb-hero-metric-gas: #0284c7;
+  --mb-hero-metric-commits: #7c3aed;
+  --mb-hero-badge-bg: rgba(2, 132, 199, 0.1);
+  --mb-hero-badge-border: rgba(2, 132, 199, 0.3);
+  --mb-hero-badge-color: #0284c7;
+  --mb-hero-pill-bg: rgba(240, 250, 255, 0.92);
+  --mb-hero-pill-border: rgba(2, 132, 199, 0.2);
+  --mb-hero-divider: rgba(2, 132, 199, 0.15);
+  --mb-hero-glow-1: rgba(14, 165, 233, 0.1);
+  --mb-hero-glow-2: rgba(2, 132, 199, 0.1);
+  --mb-hero-grad: linear-gradient(90deg, #0369a1 0%, #0284c7 50%, #059669 100%);
+}
+
+/* Light Water Textures for Aqua Mode */
+[data-theme="aqua"] body {
+  background:
+    radial-gradient(circle at 12% 18%, rgba(186, 230, 253, 0.6) 0%, transparent 42%),
+    radial-gradient(circle at 88% 22%, rgba(224, 242, 254, 0.8) 0%, transparent 48%),
+    radial-gradient(circle at 50% 80%, rgba(199, 240, 251, 0.5) 0%, transparent 55%),
+    linear-gradient(180deg, #f0faff 0%, #e6f6fb 50%, #dcf1f9 100%);
+  background-attachment: fixed;
+  color: #032b44;
+}
+
+/* ==========================================================================
+   BASE & RESET
+   ========================================================================== */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+body {
+  background-color: var(--canvas);
+  color: var(--text-1);
+  font-family: var(--font-sans);
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+/* ==========================================================================
+   SURFACES & CARDS (OUTLINE-ONLY, 1PX HAIRLINE)
+   ========================================================================== */
+
+.surface {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 24px;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.surface:hover {
+  border-color: var(--border-hover);
+}
+
+.surface-elevated {
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 24px;
+}
+
+/* ==========================================================================
+   MONOCHROME PILLS & BADGES
+   ========================================================================== */
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  border-radius: var(--radius-pill);
+  background: var(--badge-bg);
+  border: 1px solid var(--badge-border);
+  color: var(--badge-text);
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+.pill-muted {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text-3);
+}
+
+/* ==========================================================================
+   KOKONUTUI PRO MINIMAL BUTTONS (STRICT MONOCHROME)
+   ========================================================================== */
+
+.btn-mono-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  font-weight: 600;
+  font-size: 0.9rem;
+  border: 1px solid var(--btn-primary-bg);
+  border-radius: var(--radius-button);
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease, background 0.15s ease;
+  text-decoration: none;
+}
+
+.btn-mono-primary:hover {
+  background: var(--btn-primary-hover);
+  border-color: var(--btn-primary-hover);
+  transform: translateY(-1px);
+}
+
+.btn-mono-primary:active {
+  transform: scale(0.98);
+}
+
+.btn-mono-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-mono-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: transparent;
+  color: var(--text-1);
+  font-weight: 500;
+  font-size: 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-button);
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.15s ease;
+  text-decoration: none;
+}
+
+.btn-mono-ghost:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-hover);
+  transform: translateY(-1px);
+}
+
+.btn-mono-ghost:active {
+  transform: scale(0.98);
+}
+
+/* ==========================================================================
+   INPUTS & FORMS
+   ========================================================================== */
+
+.input-field {
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-input);
+  color: var(--text-1);
+  font-size: 0.9rem;
+  font-family: var(--font-sans);
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.input-field:focus {
+  border-color: var(--border-strong);
+}
+
+.input-label {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--text-2);
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   MONOCHROME CLEAN TABLE
+   ========================================================================== */
+
+.table-clean {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.88rem;
+}
+
+.table-clean thead tr {
+  border-bottom: 1px solid var(--border);
+}
+
+.table-clean thead th {
+  padding: 14px 20px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.table-clean tbody tr {
+  transition: background 0.15s ease;
+  border-bottom: 1px solid var(--border);
+}
+
+.table-clean tbody tr:last-child {
+  border-bottom: none;
+}
+
+.table-clean tbody tr:hover {
+  background: var(--surface-hover);
+}
+
+.table-clean tbody td {
+  padding: 16px 20px;
+}
+
+/* ==========================================================================
+   REDUCED MOTION (MANDATORY)
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ==========================================================================
+   WALLET ADAPTER OVERRIDES (STRICT MONOCHROME)
+   ========================================================================== */
+
+.wallet-adapter-button {
+  background: var(--surface) !important;
+  color: var(--text-1) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-button) !important;
+  font-family: var(--font-sans) !important;
+  font-size: 0.85rem !important;
+  font-weight: 600 !important;
+  height: 40px !important;
+  padding: 0 16px !important;
+  transition: all 0.2s ease !important;
+}
+
+.wallet-adapter-button:hover {
+  background: var(--surface-elevated) !important;
+  border-color: var(--border-strong) !important;
+}
+
+.wallet-adapter-button-trigger {
+  background: var(--btn-primary-bg) !important;
+  color: var(--btn-primary-text) !important;
+  border: 1px solid var(--btn-primary-bg) !important;
+}
+
+.wallet-adapter-modal-wrapper {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-card) !important;
+  color: var(--text-1) !important;
+}
+
+.wallet-adapter-modal-title {
+  color: var(--text-1) !important;
+}
+
+.wallet-adapter-modal-list .wallet-adapter-button {
+  border: 1px solid var(--border) !important;
+}
+
+::selection {
+  background: var(--text-1);
+  color: var(--canvas);
+}
+
+@keyframes pipeFlow {
+  0% {
+    left: -6%;
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.95;
+  }
+  90% {
+    opacity: 0.95;
+  }
+  100% {
+    left: 104%;
+    opacity: 0;
+  }
+}
+
+/* Responsive Theme-Aware MagicBlock Logo */
+.magicblock-logo-dark {
+  display: block;
+}
+.magicblock-logo-light {
+  display: none;
+}
+
+[data-theme="light"] .magicblock-logo-dark,
+[data-theme="aqua"] .magicblock-logo-dark {
+  display: none !important;
+}
+
+[data-theme="light"] .magicblock-logo-light,
+[data-theme="aqua"] .magicblock-logo-light {
+  display: block !important;
+}
+
+/* Solana + MagicBlockz Dual-Engine Visualizer Styling */
+@keyframes streamDataPulse {
+  0% {
+    left: 0%;
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    left: 100%;
+    opacity: 0;
+  }
+}
+
+@keyframes neonGlow {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(0, 242, 254, 0.2), 0 0 30px rgba(121, 40, 202, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(0, 255, 163, 0.3), 0 0 45px rgba(121, 40, 202, 0.25);
+  }
+}
+
+.glow-neon {
+  animation: neonGlow 4s ease-in-out infinite;
+}
+
+.data-beam {
+  position: absolute;
+  height: 2px;
+  background: linear-gradient(90deg, #00F2FE, #7928CA, #00FFA3);
+  width: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0.35;
+}
+
+.data-packet {
+  position: absolute;
+  top: -4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #00FFA3;
+  box-shadow: 0 0 10px #00FFA3, 0 0 20px #00F2FE;
+  animation: streamDataPulse 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+

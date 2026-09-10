@@ -1,0 +1,14 @@
+{
+  "name": "hydrx-magicblock-simulator",
+  "version": "1.0.0",
+  "description": "Multi-Node High-Frequency Residential IoT Water Telemetry Simulator for MagicBlock ER",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.2",
+    "chalk": "^4.1.2",
+    "dotenv": "^16.4.5"
+  }
+}
