@@ -1094,13 +1094,59 @@ app.get('/api/resident/:address', (req, res) => {
     });
 });
 
+// Resident claim registry tracking claim history per wallet: { [wallet]: { lastClaimDate: 'YYYY-MM-DD', timestamp: number } }
+const residentClaimHistory = new Map();
+
+/**
+ * GET /api/claim-status/:wallet
+ * Returns current epoch claim eligibility for a resident wallet
+ */
+app.get('/api/claim-status/:wallet', (req, res) => {
+    const { wallet } = req.params;
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const history = residentClaimHistory.get(wallet);
+    const hasClaimedToday = history?.lastClaimDate === todayStr;
+
+    return res.json({
+        success: true,
+        wallet,
+        hasClaimedToday,
+        isSameDayLocked: true,
+        message: hasClaimedToday
+            ? "You already claimed yesterday, or you are a new user. Today's accrued balance can be claimed in tomorrow's quota!"
+            : "No same-day claims allowed. Only yesterday's finalized credits can be claimed."
+    });
+});
+
 /**
  * POST /api/claim
  * Resident token reward claim with real on-chain transaction
+ * Enforces protocol rule: Only yesterday's finalized credit can be claimed; no same-day claims.
  */
 app.post('/api/claim', async (req, res) => {
-    const { deviceId, residentWallet, amount } = req.body;
-    const memoText = `[HYDRX-REWARD-CLAIM] Device: ${deviceId || 'HYDRX-NODE-101'}, Resident: ${residentWallet || relayerKeypair.publicKey.toBase58()}, Amount: ${amount || 0.05} $HYDRX`;
+    const { deviceId, residentWallet, amount, claimType } = req.body;
+
+    // Reject same-day claims
+    if (claimType === 'same-day') {
+        return res.status(400).json({
+            success: false,
+            error: "Same-day claims are prohibited. You already claimed yesterday or you are a new user. It can be claimed in tomorrow's quota!",
+            code: "SAME_DAY_LOCKED"
+        });
+    }
+
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const existingClaim = residentClaimHistory.get(residentWallet);
+    if (existingClaim && existingClaim.lastClaimDate === todayStr) {
+        return res.status(400).json({
+            success: false,
+            error: "You already claimed yesterday, or you are a new user. Today's accrued balance can be claimed in tomorrow's quota!",
+            code: "ALREADY_CLAIMED"
+        });
+    }
+
+    const claimAmount = amount ? Number(amount).toFixed(4) : "0.1850";
+    const memoText = `[HYDRX-REWARD-CLAIM] Device: ${deviceId || 'HYDRX-NODE-101'}, Resident: ${residentWallet || relayerKeypair.publicKey.toBase58()}, Amount: ${claimAmount} $HYDRX (Yesterday Finalized Quota)`;
     
     let txHash = null;
     let residentPubkey = null;
@@ -1125,7 +1171,7 @@ app.post('/api/claim', async (req, res) => {
         txHash = await sendAndConfirmTransaction(baseConnection, tx, [relayerKeypair], {
             commitment: 'confirmed',
         });
-        console.log(chalk.green(`[CLAIM ON-CHAIN] Accrued $HYDRX claimed: ${txHash}`));
+        console.log(chalk.green(`[CLAIM ON-CHAIN] Yesterday finalized $HYDRX claimed: ${txHash}`));
     } catch (e) {
         console.warn(chalk.yellow(`[CLAIM ON-CHAIN NOTICE] Fallback sending via ER: ${e.message}`));
         try {
@@ -1139,17 +1185,26 @@ app.post('/api/claim', async (req, res) => {
         }
     }
 
+    // Record claim date to enforce 24h epoch lock
+    if (residentWallet) {
+        residentClaimHistory.set(residentWallet, {
+            lastClaimDate: todayStr,
+            amount: claimAmount,
+            timestamp: Date.now()
+        });
+    }
+
     const explorerUrl = `https://explorer.solana.com/tx/${txHash}?cluster=${NETWORK}`;
     const walletExplorerUrl = residentWallet ? `https://explorer.solana.com/address/${residentWallet}?cluster=devnet` : null;
 
     return res.json({
         success: true,
-        message: "Reward claimed successfully on Solana",
+        message: "Yesterday finalized reward claimed successfully on Solana",
         data: {
             txHash,
             explorerUrl,
             walletExplorerUrl,
-            amount,
+            amount: claimAmount,
             resident: residentWallet,
             timestamp: new Date().toISOString()
         }

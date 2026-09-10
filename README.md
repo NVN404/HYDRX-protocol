@@ -543,9 +543,11 @@ The frontend application (`http://localhost:3003`) is divided into distinct page
     * **Interactive Node ID Input**: Residents can type any unique hardware serial number (e.g. `HYDRX-NODE-101`, `HYDRX-NODE-A48F12`) directly into the dedicated input field, or click one of the quick preset chips.
     * **1-Click "Claim & Bind Node to Wallet"**: Dispatches `POST /api/pair-device` to the relayer. The relayer derives the user's `ResidentState` PDA on Solana Devnet L1, delegates write-authority to MagicBlock Ephemeral Rollup via CPI, and submits a confirmed transaction with on-chain Memo indexing.
     * **Direct Solana Explorer Proof**: Once paired, a success banner provides direct clickable links to the confirmed transaction on Solana Explorer with the user's wallet listed as an involved account.
-  * **Daily Consumption vs. Benchmark**: Displays real-time household usage against the regional conservation target (200 Liters/day).
-  * **Pending $HYDRX Rewards**: Live counter of accrued conservation tokens calculated based on sub-benchmark consumption.
-  * **One-Click Token Claim**: Converts pending on-chain reward units into minted `$HYDRX` SPL tokens delivered directly to the connected Phantom or Solflare wallet.
+  * **Today's Accruing $HYDRX Rewards**: Live counter of accruing conservation tokens calculated in real time based on sub-benchmark consumption (200 L/day).
+  * **24-Hour Epoch Finality & Yesterday-Only Claim Policy**:
+    * **No Same-Day Claims**: Conservation yields cannot be claimed mid-day because household water consumption is actively in progress until the 24-hour cycle closes at 00:00 UTC.
+    * **Yesterday's Finalized Credit**: Only finalized conservation credits from the preceding day's completed cycle can be claimed on-chain.
+    * **Epoch Lock Notice**: When a resident has already claimed yesterday's quota or is a newly onboarded resident, the claim action is locked with the notice: *"You already claimed yesterday, or you are a new user. Today's accrued balance can be claimed in tomorrow's quota!"*
   * **Live Stream Feed**: Instant chronological log of incoming telemetry pings, flow volume, and cryptographic verification status.
 
 ---

@@ -104,26 +104,76 @@ export default function DashboardTab({ relayerStats, onRefreshRelayer }: Dashboa
     }
   };
 
+  // Yesterday's finalized credit tracking (No same-day claims allowed)
+  const [yesterdayClaimable, setYesterdayClaimable] = useState<number>(0.0);
+  const [hasClaimedYesterday, setHasClaimedYesterday] = useState<boolean>(true);
+  const [claimError, setClaimError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!publicKey) return;
+    const walletKey = publicKey.toBase58();
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const storedClaimDate = typeof window !== 'undefined' ? localStorage.getItem(`hydrx_claimed_${walletKey}`) : null;
+    if (storedClaimDate === todayStr) {
+      setHasClaimedYesterday(true);
+      setYesterdayClaimable(0.0);
+    } else {
+      const storedYesterday = typeof window !== 'undefined' ? localStorage.getItem(`hydrx_yesterday_${walletKey}`) : null;
+      if (storedYesterday !== null) {
+        const val = parseFloat(storedYesterday);
+        setYesterdayClaimable(val);
+        setHasClaimedYesterday(val <= 0);
+      } else {
+        // By default, new user or already claimed yesterday
+        setHasClaimedYesterday(true);
+        setYesterdayClaimable(0.0);
+      }
+    }
+  }, [publicKey]);
+
+  const handleLoadYesterdayCredit = () => {
+    if (!publicKey) return;
+    setYesterdayClaimable(0.1850);
+    setHasClaimedYesterday(false);
+    setClaimError(null);
+    setClaimResult(null);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`hydrx_yesterday_${publicKey.toBase58()}`, '0.1850');
+      localStorage.removeItem(`hydrx_claimed_${publicKey.toBase58()}`);
+    }
+  };
+
   // Handle Claim with Anime.js white/gray particle scatter confirmation
   const handleClaim = async () => {
     if (!connected || !publicKey) return;
+
+    if (hasClaimedYesterday || yesterdayClaimable <= 0) {
+      setClaimError("Same-day claims are prohibited. You already claimed yesterday or you are a new user. It can be claimed in tomorrow's quota!");
+      return;
+    }
+
     setIsClaiming(true);
+    setClaimError(null);
 
     try {
       const endpoint = getRelayerUrl();
-      const randBytes = Buffer.from(Array.from({ length: 64 }, () => Math.floor(Math.random() * 256)));
-      const res = await axios.post(`${endpoint}/api/telemetry`, {
+      const res = await axios.post(`${endpoint}/api/claim`, {
         deviceId: userDeviceId,
-        litersUsed: 0.01,
-        timestamp: Math.floor(Date.now() / 1000),
-        signature: bs58.encode(randBytes),
-        status: 'CLAIM',
         residentWallet: publicKey.toBase58(),
+        amount: yesterdayClaimable,
+        claimType: 'yesterday',
       });
 
-      const tx = res.data.data?.txHash;
+      const tx = res.data?.data?.txHash;
       if (tx) {
         setClaimResult(tx);
+        setHasClaimedYesterday(true);
+        setYesterdayClaimable(0.0);
+        const todayStr = new Date().toISOString().slice(0, 10);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(`hydrx_claimed_${publicKey.toBase58()}`, todayStr);
+          localStorage.setItem(`hydrx_yesterday_${publicKey.toBase58()}`, '0');
+        }
 
         // Anime.js monochrome particle burst confirmation
         if (claimBurstRef.current) {
@@ -139,8 +189,9 @@ export default function DashboardTab({ relayerStats, onRefreshRelayer }: Dashboa
         }
       }
       onRefreshRelayer();
-    } catch (e) {
+    } catch (e: any) {
       console.error('Claim failed:', e);
+      setClaimError(e.response?.data?.error || e.message || 'Claim failed');
     } finally {
       setIsClaiming(false);
     }
@@ -375,30 +426,93 @@ export default function DashboardTab({ relayerStats, onRefreshRelayer }: Dashboa
           </div>
         </div>
 
-        {/* RIGHT: Token Yield & Claim Box with Anime.js Monochrome Particle Scatter */}
+        {/* RIGHT: Token Yield & Claim Box with 24H Epoch Lock */}
         <div className="surface" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', position: 'relative' }}>
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
               <span style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-1)' }}>
                 TOKEN YIELD
               </span>
-              <span className="pill font-mono">1 m³ = 1 $HYDRX</span>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <span className="pill font-mono">1 m³ = 1 $HYDRX</span>
+                <span className="pill pill-muted font-mono" style={{ color: 'var(--text-3)' }}>24H EPOCH LOCK</span>
+              </div>
             </div>
 
-            <p style={{ color: 'var(--text-2)', fontSize: '0.88rem', lineHeight: 1.6 }}>
-              Total Claimable Conservation Balance for {userDeviceId}
-            </p>
-
-            <div className="font-mono" style={{ fontSize: '2.8rem', fontWeight: 800, color: 'var(--text-1)', margin: '14px 0 6px', letterSpacing: '-0.03em' }}>
-              {hydrxYield.toFixed(4)} <span style={{ fontSize: '1.4rem', fontWeight: 500, color: 'var(--text-3)' }}>$HYDRX</span>
+            {/* Today's Accruing Balance (In-Progress, Locked) */}
+            <div style={{
+              background: 'var(--surface-elevated)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-card)',
+              padding: '12px 14px',
+              marginBottom: '12px',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                <span style={{ fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>
+                  TODAY'S ACCRUING BALANCE (LOCKED)
+                </span>
+                <span className="font-mono" style={{ fontSize: '0.7rem', color: 'var(--text-4)' }}>
+                  Settles 00:00 UTC
+                </span>
+              </div>
+              <div className="font-mono" style={{ fontSize: '1.9rem', fontWeight: 800, color: 'var(--text-1)', letterSpacing: '-0.02em', margin: '4px 0' }}>
+                {hydrxYield.toFixed(4)} <span style={{ fontSize: '1.1rem', fontWeight: 500, color: 'var(--text-3)' }}>$HYDRX</span>
+              </div>
+              <p style={{ color: 'var(--text-3)', fontSize: '0.74rem', margin: '4px 0 0', lineHeight: 1.4 }}>
+                Streaming live from active meter pulses. Real-time conservation cannot be claimed same-day.
+              </p>
             </div>
 
-            <p style={{ color: 'var(--text-3)', fontSize: '0.8rem' }}>
-              Minted directly via on-chain SPL program to your connected address.
-            </p>
+            {/* Yesterday's Finalized Balance (Claimable) */}
+            <div style={{
+              background: 'var(--canvas)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-card)',
+              padding: '12px 14px',
+              marginBottom: '12px',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                <span style={{ fontSize: '0.74rem', fontWeight: 600, color: 'var(--text-2)', fontFamily: 'var(--font-mono)' }}>
+                  YESTERDAY'S FINALIZED CREDIT
+                </span>
+                <span className="font-mono" style={{
+                  fontSize: '0.68rem',
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  background: (hasClaimedYesterday || yesterdayClaimable <= 0) ? 'var(--surface-elevated)' : 'var(--text-1)',
+                  color: (hasClaimedYesterday || yesterdayClaimable <= 0) ? 'var(--text-4)' : 'var(--canvas)',
+                  fontWeight: 600,
+                }}>
+                  {hasClaimedYesterday ? 'CLAIMED' : (yesterdayClaimable > 0 ? 'AVAILABLE' : 'NEW USER')}
+                </span>
+              </div>
+              <div className="font-mono" style={{ fontSize: '1.5rem', fontWeight: 800, color: yesterdayClaimable > 0 && !hasClaimedYesterday ? 'var(--text-1)' : 'var(--text-4)', margin: '4px 0' }}>
+                {yesterdayClaimable.toFixed(4)} <span style={{ fontSize: '0.95rem', fontWeight: 500, color: 'var(--text-4)' }}>$HYDRX</span>
+              </div>
+            </div>
+
+            {/* Policy Notice Box */}
+            <div style={{
+              padding: '10px 12px',
+              background: 'var(--surface-elevated)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-input)',
+              marginBottom: '14px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                <span className="font-mono" style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.04em', color: 'var(--text-2)' }}>
+                  PROTOCOL CLAIM RULE
+                </span>
+              </div>
+              <p style={{ color: 'var(--text-2)', fontSize: '0.78rem', lineHeight: 1.5, margin: 0 }}>
+                {hasClaimedYesterday || yesterdayClaimable <= 0
+                  ? "You already claimed yesterday, or you are a new user. Today's accrued balance can be claimed in tomorrow's quota!"
+                  : "Yesterday's verified conservation credit is available for on-chain claim. Same-day claims for today's ongoing usage are locked."}
+              </p>
+            </div>
           </div>
 
-          <div style={{ position: 'relative', marginTop: '24px' }}>
+          <div style={{ position: 'relative', marginTop: '12px' }}>
             {/* Particle Burst Container */}
             <div
               ref={claimBurstRef}
@@ -428,12 +542,55 @@ export default function DashboardTab({ relayerStats, onRefreshRelayer }: Dashboa
 
             <button
               onClick={handleClaim}
-              disabled={isClaiming || hydrxYield <= 0}
+              disabled={isClaiming || hasClaimedYesterday || yesterdayClaimable <= 0}
               className="btn-mono-primary"
-              style={{ width: '100%', padding: '14px' }}
+              style={{
+                width: '100%',
+                padding: '14px',
+                opacity: (hasClaimedYesterday || yesterdayClaimable <= 0) ? 0.45 : 1,
+                cursor: (hasClaimedYesterday || yesterdayClaimable <= 0) ? 'not-allowed' : 'pointer',
+              }}
             >
-              {isClaiming ? 'Signing Solana Claim...' : 'Claim $HYDRX Tokens ↗'}
+              {isClaiming
+                ? 'Signing Solana Claim...'
+                : (hasClaimedYesterday || yesterdayClaimable <= 0)
+                  ? "Same-Day Claim Locked (Available in Tomorrow's Quota)"
+                  : `Claim Yesterday's Yield (${yesterdayClaimable.toFixed(4)} $HYDRX) ↗`
+              }
             </button>
+
+            {/* Demo Helper Button to simulate yesterday's finalized claim */}
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '8px' }}>
+              <button
+                type="button"
+                onClick={handleLoadYesterdayCredit}
+                className="btn-mono-ghost"
+                style={{
+                  fontSize: '0.68rem',
+                  padding: '3px 8px',
+                  color: 'var(--text-4)',
+                  borderColor: 'var(--border)',
+                  background: 'transparent',
+                }}
+              >
+                Demo: Test Yesterday Finalized Credit (0.1850 $HYDRX)
+              </button>
+            </div>
+
+            {claimError && (
+              <div style={{
+                marginTop: '10px',
+                padding: '8px 12px',
+                background: 'rgba(255, 60, 60, 0.1)',
+                border: '1px solid rgba(255, 60, 60, 0.3)',
+                borderRadius: 'var(--radius-input)',
+                fontSize: '0.74rem',
+                fontFamily: 'var(--font-mono)',
+                color: '#ff6b6b',
+              }}>
+                {claimError}
+              </div>
+            )}
 
             {claimResult && (
               <motion.div
