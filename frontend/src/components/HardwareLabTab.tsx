@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import axios from 'axios';
-import { RELAYER_URL, getExplorerUrl, PROGRAM_ID } from '../lib/solana';
+import bs58 from 'bs58';
+import { getRelayerUrl, RELAYER_URL, getExplorerUrl, PROGRAM_ID } from '../lib/solana';
 import HardwareBlueprints from './hardware/HardwareBlueprints';
 
 interface LedgerEntry {
@@ -84,7 +85,7 @@ export default function HardwareLabTab({ relayerStats, onRefreshRelayer }: Hardw
           id: l.id,
           time: l.timestamp ? new Date(l.timestamp).toTimeString().slice(0, 8) : currentTime,
           delta: parseFloat(l.liters) || 0,
-          hash: l.signature || `0x${l.deviceId}-SIG`,
+          hash: l.txHash ? `${l.txHash.slice(0, 12)}...` : (l.signature || `${l.deviceId}-SIG`),
           txHash: l.txHash,
           ok: l.status !== 'EXCEEDED' && l.status !== 'TAMPER',
         }));
@@ -204,17 +205,14 @@ export default function HardwareLabTab({ relayerStats, onRefreshRelayer }: Hardw
     return () => clearInterval(interval);
   }, []);
 
-  // Cryptographic payload hash
+  // Cryptographic payload signature in Solana Base58 format
   const hashPayload = async (payload: any) => {
     try {
       const bytes = new TextEncoder().encode(JSON.stringify(payload));
       const digest = await crypto.subtle.digest('SHA-256', bytes as unknown as BufferSource);
-      const hex = Array.from(new Uint8Array(digest))
-        .map((b) => b.toString(16).padStart(2, '0'))
-        .join('');
-      return '0x' + hex.slice(0, 16);
+      return bs58.encode(new Uint8Array(digest)).slice(0, 16);
     } catch {
-      return '0x' + Math.random().toString(16).slice(2, 18);
+      return bs58.encode(Buffer.from(Array.from({ length: 16 }, () => Math.floor(Math.random() * 256))));
     }
   };
 
@@ -244,7 +242,8 @@ export default function HardwareLabTab({ relayerStats, onRefreshRelayer }: Hardw
         if (!isTampered) {
           // Live relay to Solana
           try {
-            const res = await axios.post(`${RELAYER_URL}/api/telemetry`, {
+            const endpoint = getRelayerUrl();
+            const res = await axios.post(`${endpoint}/api/telemetry`, {
               deviceId,
               litersUsed: Number(delta.toFixed(2)),
               timestamp: Math.floor(Date.now() / 1000),
@@ -256,7 +255,8 @@ export default function HardwareLabTab({ relayerStats, onRefreshRelayer }: Hardw
             }
             setIsRelayerConnected(true);
             onRefreshRelayer?.();
-          } catch {
+          } catch (err) {
+            console.warn('[HARDWARE LAB] Relayer telemetry submission notice:', err);
             setIsRelayerConnected(false);
           }
         }
@@ -265,7 +265,7 @@ export default function HardwareLabTab({ relayerStats, onRefreshRelayer }: Hardw
           id: `entry-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
           time: timeStr,
           delta: Number(delta.toFixed(2)),
-          hash,
+          hash: solanaTxHash ? `${solanaTxHash.slice(0, 12)}...` : hash,
           txHash: solanaTxHash,
           ok: !isTampered,
         };
@@ -682,12 +682,13 @@ export default function HardwareLabTab({ relayerStats, onRefreshRelayer }: Hardw
               <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-1)', margin: 0 }}>
                 Solana Attestation Feed
               </h2>
-              <span className="pill font-mono" style={{ fontSize: '0.7rem' }}>
-                SOLANA DEVNET &middot; LIVE RELAYER
+              <span className="pill font-mono" style={{ fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: isRelayerConnected ? '#22c55e' : '#eab308' }} />
+                {isRelayerConnected ? 'SOLANA ER RELAYER ACTIVE' : 'CONNECTING TO RELAYER...'}
               </span>
             </div>
             <p style={{ fontSize: '0.82rem', color: 'var(--text-3)', lineHeight: 1.5, margin: '6px 0 0' }}>
-              Every pulse interval is cryptographically signed at the device edge and verified through the zero-gas relayer proxy.
+              Live Relayer: <span className="font-mono" style={{ color: '#00f0ff', fontSize: '0.76rem' }}>{getRelayerUrl()}</span> &middot; Attesting real-time pulses to MagicBlock Ephemeral Rollup &amp; Solana Devnet.
             </p>
           </div>
 
@@ -779,18 +780,33 @@ export default function HardwareLabTab({ relayerStats, onRefreshRelayer }: Hardw
                   <div className="font-mono" style={{ fontSize: '0.8rem', color: 'var(--text-1)', wordBreak: 'break-all' }}>
                     <span style={{ fontWeight: 700 }}>+{entry.delta.toFixed(2)} L</span>
                     <span style={{ color: 'var(--text-4)', margin: '0 6px' }}>&middot;</span>
-                    <span style={{ color: 'var(--text-3)' }}>hash: {entry.hash}</span>
+                    {entry.txHash ? (
+                      <a
+                        href={getExplorerUrl(entry.txHash, true)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: '#00f0ff', textDecoration: 'none', fontWeight: 600 }}
+                        title="View Confirmed Transaction on Solana Explorer"
+                      >
+                        TX: {entry.txHash.slice(0, 10)}...{entry.txHash.slice(-6)} ↗
+                      </a>
+                    ) : (
+                      <span style={{ color: 'var(--text-3)' }}>SIG: {entry.hash}</span>
+                    )}
                   </div>
 
                   {entry.txHash && (
-                    <div className="font-mono" style={{ fontSize: '0.72rem', marginTop: '2px' }}>
+                    <div className="font-mono" style={{ fontSize: '0.72rem', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <span style={{ color: '#22c55e', fontSize: '0.65rem', border: '1px solid rgba(34, 197, 94, 0.4)', borderRadius: '4px', padding: '1px 5px', fontWeight: 700 }}>
+                        ON-CHAIN CONFIRMED
+                      </span>
                       <a
                         href={getExplorerUrl(entry.txHash, true)}
                         target="_blank"
                         rel="noopener noreferrer"
                         style={{ color: 'var(--text-2)', textDecoration: 'underline' }}
                       >
-                        Solana Tx: {entry.txHash.slice(0, 16)}... ↗
+                        Solana Tx: {entry.txHash.slice(0, 18)}... ↗
                       </a>
                     </div>
                   )}

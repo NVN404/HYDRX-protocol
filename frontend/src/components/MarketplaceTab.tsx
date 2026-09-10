@@ -17,7 +17,7 @@ import {
   LogOut,
   AlertTriangle,
 } from 'lucide-react';
-import { getExplorerUrl, RELAYER_URL } from '../lib/solana';
+import { getExplorerUrl, getRelayerUrl, RELAYER_URL } from '../lib/solana';
 
 interface MarketplaceProps {
   onBackToLanding?: () => void;
@@ -153,8 +153,8 @@ export default function MarketplaceTab({ onBackToLanding }: MarketplaceProps) {
       // STEP 2: ON-CHAIN $HYDRX TOKEN BURN VIA RELAYER
       // -------------------------------------------------------------
       setStepState('burning_hydrx');
-
-      const res = await axios.post(`${RELAYER_URL}/api/retire`, {
+      const endpoint = getRelayerUrl();
+      const res = await axios.post(`${endpoint}/api/retire`, {
         companyName: companyName.trim() || 'Institutional ESG Beneficiary',
         corporateId: corporateId.trim() || 'CORP-AUTH-001',
         cubicMeters: volume,

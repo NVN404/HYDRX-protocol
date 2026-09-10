@@ -26,7 +26,7 @@ import {
   Sparkles,
   Check,
 } from 'lucide-react';
-import { RELAYER_URL, getExplorerUrl } from '../lib/solana';
+import { getRelayerUrl, RELAYER_URL, getExplorerUrl } from '../lib/solana';
 
 interface RedemptionRecord {
   id: string;
@@ -259,7 +259,8 @@ export default function DonationTab() {
 
     try {
       // Execute on-chain burn / retirement transaction via Relayer
-      const res = await axios.post(`${RELAYER_URL}/api/retire`, {
+      const endpoint = getRelayerUrl();
+      const res = await axios.post(`${endpoint}/api/retire`, {
         companyName: `Resident Marketplace: ${item.title}`,
         corporateId: `RES-ACCR-${voucher}`,
         cubicMeters: item.costHydrx,

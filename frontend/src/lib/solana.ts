@@ -15,8 +15,46 @@ export const ROUTER_URL =
   process.env.NEXT_PUBLIC_ROUTER_URL || 'https://devnet-router.magicblock.app/';
 export const EPHEMERAL_RPC_URL =
   process.env.NEXT_PUBLIC_EPHEMERAL_RPC_URL || 'https://devnet-as.magicblock.app/';
-export const RELAYER_URL =
-  process.env.NEXT_PUBLIC_RELAYER_URL || 'http://localhost:3005';
+
+export function getRelayerUrl(): string {
+  if (typeof window !== 'undefined') {
+    // 1. Check URL query param: ?relayer=https://...
+    const urlParams = new URLSearchParams(window.location.search);
+    const param = urlParams.get('relayer');
+    if (param) {
+      const formatted = param.startsWith('http://') || param.startsWith('https://') ? param : `https://${param}`;
+      return formatted.replace(/\/$/, '');
+    }
+
+    // 2. Check localStorage override
+    const saved = localStorage.getItem('hydrx_relayer_url');
+    if (saved) {
+      const formatted = saved.startsWith('http://') || saved.startsWith('https://') ? saved : `https://${saved}`;
+      return formatted.replace(/\/$/, '');
+    }
+
+    // 3. Auto-detect if running on Render
+    if (window.location.hostname.includes('onrender.com')) {
+      return 'https://hydrx-relayer.onrender.com';
+    }
+  }
+
+  // 4. Check Environment Variable
+  const envUrl = process.env.NEXT_PUBLIC_RELAYER_URL;
+  if (envUrl && envUrl.trim() !== '') {
+    const formatted = envUrl.startsWith('http://') || envUrl.startsWith('https://') ? envUrl : `https://${envUrl}`;
+    return formatted.replace(/\/$/, '');
+  }
+
+  // 5. Fallback for deployed domains
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    return 'https://hydrx-relayer.onrender.com';
+  }
+
+  return 'http://localhost:3005';
+}
+
+export const RELAYER_URL = getRelayerUrl();
 
 // Key MagicBlock Constants
 export const DELEGATION_PROGRAM_ID = new PublicKey(

@@ -13,7 +13,7 @@ import LeaderboardTab from '../components/LeaderboardTab';
 import DonationTab from '../components/DonationTab';
 import HardwareLabTab from '../components/HardwareLabTab';
 import FaqTab from '../components/FaqTab';
-import { RELAYER_URL, PROGRAM_ID, SOLANA_NETWORK, getAddressExplorerUrl } from '../lib/solana';
+import { getRelayerUrl, RELAYER_URL, PROGRAM_ID, SOLANA_NETWORK, getAddressExplorerUrl } from '../lib/solana';
 
 export default function Page() {
   const { connected } = useWallet();
@@ -37,25 +37,29 @@ export default function Page() {
   }, []);
 
   const handleToggleTheme = () => {
-    const nextTheme = theme === 'dark' ? 'light' : theme === 'light' ? 'aqua' : 'dark';
+    const cycle: Record<'dark' | 'light' | 'aqua', 'dark' | 'light' | 'aqua'> = {
+      dark: 'light',
+      light: 'aqua',
+      aqua: 'dark',
+    };
+    const nextTheme = cycle[theme];
     setTheme(nextTheme);
-    localStorage.setItem('hydrx_theme', nextTheme);
     document.documentElement.setAttribute('data-theme', nextTheme);
+    localStorage.setItem('hydrx_theme', nextTheme);
   };
 
-  // Anime.js subtle opacity pulse on Devnet badge in footer
+  // Subtle pulse animation on Solana Devnet badge
   useEffect(() => {
-    if (!devnetPillRef.current) return;
-    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    if (mediaQuery.matches) return;
-
-    const anim = animate(devnetPillRef.current, {
-      opacity: [1, 0.4, 1],
-      duration: 2500,
-      loop: true,
-      ease: 'inOutSine',
-    });
-
+    if (!mounted) return;
+    let anim: any;
+    if (devnetPillRef.current) {
+      anim = animate(devnetPillRef.current, {
+        opacity: [0.75, 1, 0.75],
+        duration: 3200,
+        repeat: true,
+        ease: 'easeInOut',
+      });
+    }
     return () => {
       anim?.pause?.();
     };
@@ -70,7 +74,8 @@ export default function Page() {
 
   const fetchRelayerStats = async () => {
     try {
-      const res = await axios.get(`${RELAYER_URL}/api/stats`);
+      const endpoint = getRelayerUrl();
+      const res = await axios.get(`${endpoint}/api/stats`);
       if (res.data) {
         setRelayerStats(res.data);
       }

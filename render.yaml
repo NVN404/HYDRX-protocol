@@ -51,7 +51,4 @@ services:
       - key: NEXT_PUBLIC_PROGRAM_ID
         value: 8dLu65pPh6AbfDmRW5GUGqjPQuxihnpv2vWydzt98vKj
       - key: NEXT_PUBLIC_RELAYER_URL
-        fromService:
-          type: web
-          name: hydrx-relayer
-          property: host
+        value: https://hydrx-relayer.onrender.com

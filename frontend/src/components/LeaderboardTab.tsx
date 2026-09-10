@@ -4,7 +4,8 @@ import React, { useState, useMemo } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { motion, AnimatePresence } from 'motion/react';
 import axios from 'axios';
-import { RELAYER_URL, getExplorerUrl } from '../lib/solana';
+import bs58 from 'bs58';
+import { getRelayerUrl, RELAYER_URL, getExplorerUrl } from '../lib/solana';
 import NumberCountUp from './motion/NumberCountUp';
 
 interface LeaderboardProps {
@@ -97,16 +98,18 @@ export default function LeaderboardTab({ relayerStats, onRefreshRelayer }: Leade
     const startTime = performance.now();
     try {
       setTriggeringId(deviceId);
+      const endpoint = getRelayerUrl();
+      const randBytes = Buffer.from(Array.from({ length: 64 }, () => Math.floor(Math.random() * 256)));
       const payload = {
         deviceId,
         litersUsed: liters,
         timestamp: Math.floor(Date.now() / 1000),
-        signature: '0x' + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join(''),
+        signature: bs58.encode(randBytes),
         status: liters < 1.0 ? 'CONSERVING' : 'NORMAL',
       };
-      const res = await axios.post(`${RELAYER_URL}/api/telemetry`, payload);
+      const res = await axios.post(`${endpoint}/api/telemetry`, payload);
       const latencyMs = Math.round(performance.now() - startTime);
-      const tx = res.data.data?.txHash || `0x${Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join('')}`;
+      const tx = res.data.data?.txHash || bs58.encode(Buffer.from(Array.from({ length: 64 }, () => Math.floor(Math.random() * 256))));
 
       const record: ParallelTxRecord = {
         id: `tx-${Date.now()}-${deviceId}`,

@@ -5,9 +5,10 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import axios from 'axios';
 import { animate } from 'animejs';
+import bs58 from 'bs58';
 import RadialGauge from './motion/RadialGauge';
 import NumberCountUp from './motion/NumberCountUp';
-import { RELAYER_URL, getExplorerUrl } from '../lib/solana';
+import { getRelayerUrl, RELAYER_URL, getExplorerUrl } from '../lib/solana';
 import MagicBlockLogo from './logos/MagicBlockLogo';
 
 interface DashboardProps {
@@ -86,7 +87,8 @@ export default function DashboardTab({ relayerStats, onRefreshRelayer }: Dashboa
     setIsPairing(true);
     setPairResult(null);
     try {
-      await axios.post(`${RELAYER_URL}/api/pair-device`, {
+      const endpoint = getRelayerUrl();
+      await axios.post(`${endpoint}/api/pair-device`, {
         deviceId: userDeviceId,
         residentWallet: publicKey.toBase58(),
       });
@@ -105,11 +107,13 @@ export default function DashboardTab({ relayerStats, onRefreshRelayer }: Dashboa
     setIsClaiming(true);
 
     try {
-      const res = await axios.post(`${RELAYER_URL}/api/telemetry`, {
+      const endpoint = getRelayerUrl();
+      const randBytes = Buffer.from(Array.from({ length: 64 }, () => Math.floor(Math.random() * 256)));
+      const res = await axios.post(`${endpoint}/api/telemetry`, {
         deviceId: userDeviceId,
         litersUsed: 0.01,
         timestamp: Math.floor(Date.now() / 1000),
-        signature: '0x' + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join(''),
+        signature: bs58.encode(randBytes),
         status: 'CLAIM',
       });
 
