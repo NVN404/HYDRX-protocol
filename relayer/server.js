@@ -51,17 +51,20 @@ const MEMO_PROGRAM_ID = new PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfc
 const baseConnection = new Connection(BASE_RPC_URL, 'confirmed');
 let erConnection = new Connection(DEFAULT_ER_URL, 'confirmed');
 
-// Relayer Keypair Setup
+// Relayer Keypair Setup - Strictly locked to authorized on-chain relayer (BwFnqHWbnuYXWEdp64VCzydpnDP8bQJ1BQdmgvaWmPyG)
+const OFFICIAL_RELAYER_SECRET = "fvcDuBRep9kNkKFM1JhRNnbrZsqjdiPYHA4aR5W32RMaW8XUYz3yhBkPWjCxWeshLyfJLmMqAYtNE28xBG9wT9Y";
 let relayerKeypair;
+
 if (process.env.RELAYER_KEYPAIR) {
     try {
-        if (process.env.RELAYER_KEYPAIR.startsWith('[')) {
-            relayerKeypair = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(process.env.RELAYER_KEYPAIR)));
+        const rawKey = process.env.RELAYER_KEYPAIR.trim().replace(/^["']|["']$/g, '').trim();
+        if (rawKey.startsWith('[')) {
+            relayerKeypair = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(rawKey)));
         } else {
-            relayerKeypair = Keypair.fromSecretKey(bs58.decode(process.env.RELAYER_KEYPAIR));
+            relayerKeypair = Keypair.fromSecretKey(bs58.decode(rawKey));
         }
     } catch (e) {
-        console.log(chalk.yellow(`[WARN] Invalid RELAYER_KEYPAIR in env. Falling back.`));
+        console.log(chalk.yellow(`[WARN] Invalid RELAYER_KEYPAIR in env: ${e.message}`));
     }
 }
 
@@ -77,16 +80,18 @@ if (!relayerKeypair) {
             try {
                 const raw = JSON.parse(fs.readFileSync(p, 'utf8'));
                 relayerKeypair = Keypair.fromSecretKey(Uint8Array.from(raw));
-                console.log(chalk.green(`[WALLET] Loaded funded relayer keypair from ${p} (${relayerKeypair.publicKey.toBase58()})`));
                 break;
-            } catch (e) {}
+            } catch (e) { }
         }
     }
 }
 
+// Always fall back to the REAL authorized on-chain relayer (NEVER generate a random keypair!)
 if (!relayerKeypair) {
-    relayerKeypair = Keypair.generate();
+    relayerKeypair = Keypair.fromSecretKey(bs58.decode(OFFICIAL_RELAYER_SECRET));
 }
+
+console.log(chalk.green(`[WALLET] Using authorized on-chain relayer: ${relayerKeypair.publicKey.toBase58()}`));
 
 const officialDevnetConnection = new Connection("https://api.devnet.solana.com", 'confirmed');
 
@@ -101,7 +106,7 @@ async function sendOnChainEvent({ action, deviceId, resident, details }) {
             if (resident) {
                 try {
                     residentPubkey = new PublicKey(resident);
-                } catch (e) {}
+                } catch (e) { }
             }
 
             const memoText = `[HYDRX-${action}] Node: ${deviceId || 'HYDRX-NODE-101'} | Resident: ${resident || relayerKeypair.publicKey.toBase58()} | ${details || ''}`;
@@ -343,7 +348,7 @@ app.post('/api/telemetry', async (req, res) => {
         try {
             new PublicKey(incomingResident);
             deviceToWallet[deviceId] = incomingResident;
-        } catch (e) {}
+        } catch (e) { }
     }
 
     const residentAddress = deviceToWallet[deviceId] || getResidentWallet(deviceId);
@@ -434,7 +439,7 @@ app.post('/api/telemetry', async (req, res) => {
                 deviceId,
                 resident: residentAddress,
                 details: `Volume: ${deviceEntry.totalLiters} L across ${deviceEntry.pings} pings`
-            }).catch(() => {});
+            }).catch(() => { });
         }
     } else {
         // --- ROUTED DIRECTLY TO SOLANA BASE LAYER (L1) ---
@@ -470,8 +475,8 @@ app.post('/api/telemetry', async (req, res) => {
     }
 
     // Update in-memory stats
-    const incomingMeterTotal = req.body.meterTotal !== undefined 
-        ? parseFloat(req.body.meterTotal) 
+    const incomingMeterTotal = req.body.meterTotal !== undefined
+        ? parseFloat(req.body.meterTotal)
         : (req.body.totalLiters !== undefined ? parseFloat(req.body.totalLiters) : null);
 
     if (incomingMeterTotal !== null && !isNaN(incomingMeterTotal)) {
@@ -491,7 +496,7 @@ app.post('/api/telemetry', async (req, res) => {
     const walletExplorerUrl = `https://explorer.solana.com/address/${residentAddress}?cluster=devnet`;
 
     const logEntry = {
-        id: `LOG-${Date.now()}-${Math.floor(Math.random()*1000)}`,
+        id: `LOG-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
         deviceId,
         resident: residentAddress,
         liters: parsedLiters,
@@ -862,7 +867,7 @@ app.get('/api/tx-inspect/:txHash', async (req, res) => {
                     raw: erTx
                 });
             }
-        } catch (e) {}
+        } catch (e) { }
 
         // Try Solana Base Devnet
         const baseTx = await baseConnection.getTransaction(txHash, {
@@ -1141,13 +1146,13 @@ app.post('/api/claim', async (req, res) => {
 
     const claimAmount = amount ? Number(amount).toFixed(4) : "0.1850";
     const memoText = `[HYDRX-REWARD-CLAIM] Device: ${deviceId || 'HYDRX-NODE-101'}, Resident: ${residentWallet || relayerKeypair.publicKey.toBase58()}, Amount: ${claimAmount} $HYDRX (Yesterday Finalized Quota)`;
-    
+
     let txHash = null;
     let residentPubkey = null;
     if (residentWallet) {
         try {
             residentPubkey = new PublicKey(residentWallet);
-        } catch (e) {}
+        } catch (e) { }
     }
 
     try {
