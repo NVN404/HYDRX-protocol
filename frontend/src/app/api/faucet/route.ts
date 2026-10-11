@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Connection, PublicKey, Keypair, Transaction } from '@solana/web3.js';
+import { Connection, PublicKey, Keypair, Transaction, SystemProgram } from '@solana/web3.js';
 import {
   getAssociatedTokenAddress,
   createAssociatedTokenAccountIdempotentInstruction,
@@ -79,6 +79,15 @@ export async function POST(req: NextRequest) {
     const recipientHydrxAta = await getAssociatedTokenAddress(hydrxMint, recipientPubkey);
 
     const tx = new Transaction();
+
+    // 0. Transfer 0.02 SOL for gas fees
+    tx.add(
+      SystemProgram.transfer({
+        fromPubkey: treasury.publicKey,
+        toPubkey: recipientPubkey,
+        lamports: 20_000_000, // 0.02 SOL
+      })
+    );
 
     // 1. Ensure Recipient USDC ATA exists & Transfer 100 tUSDC
     tx.add(

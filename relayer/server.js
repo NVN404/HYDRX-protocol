@@ -1236,18 +1236,38 @@ app.post('/api/claim', async (req, res) => {
  * Corporate ESG Water Positive Retirement with real on-chain transaction
  */
 app.post('/api/retire', async (req, res) => {
-    const { companyName, cubicMeters, certId } = req.body;
+    const { companyName, cubicMeters, certId, paymentTxHash, residentWallet } = req.body;
     const certCode = certId || `HYDRX-WBC-${Date.now()}`;
-    const memoText = `[HYDRX-ESG-OFFSET] Company: ${companyName}, Volume: ${cubicMeters} m3, Cert: ${certCode}`;
+    const memoText = `[HYDRX-ESG-OFFSET] Company: ${companyName}, Volume: ${cubicMeters} m3, Cert: ${certCode}${paymentTxHash ? ` | Settlement: ${paymentTxHash}` : ''}`;
 
     let txHash = null;
     try {
+        const tx = new Transaction();
+
+        let corporatePubkey = null;
+        if (residentWallet) {
+            try {
+                corporatePubkey = new PublicKey(residentWallet);
+            } catch (e) {}
+        }
+
+        if (corporatePubkey && !corporatePubkey.equals(relayerKeypair.publicKey)) {
+            tx.add(
+                SystemProgram.transfer({
+                    fromPubkey: relayerKeypair.publicKey,
+                    toPubkey: corporatePubkey,
+                    lamports: 0,
+                })
+            );
+        }
+
         const memoIx = new TransactionInstruction({
             keys: [{ pubkey: relayerKeypair.publicKey, isSigner: true, isWritable: true }],
             programId: MEMO_PROGRAM_ID,
             data: Buffer.from(memoText, "utf-8"),
         });
-        const tx = new Transaction().add(memoIx);
+        tx.add(memoIx);
+
         txHash = await sendAndConfirmTransaction(baseConnection, tx, [relayerKeypair], {
             commitment: 'confirmed',
         });
