@@ -177,7 +177,7 @@ const stats = {
     avgErLatencyMs: 24,
     avgBaseLatencyMs: 650,
     devices: [
-        { deviceId: "HYDRX-NODE-101", totalLiters: 1.45, pings: 3, delegated: true, uncommittedPings: 3, lastPing: new Date().toISOString() },
+        { deviceId: "HYDRX-NODE-101", totalLiters: 0.00, pings: 0, delegated: true, uncommittedPings: 0, lastPing: new Date().toISOString() },
         { deviceId: "HYDRX-NODE-202", totalLiters: 8.80, pings: 12, delegated: true, uncommittedPings: 12, lastPing: new Date().toISOString() },
         { deviceId: "HYDRX-NODE-303", totalLiters: 24.50, pings: 28, delegated: true, uncommittedPings: 8, lastPing: new Date().toISOString() },
         { deviceId: "HYDRX-NODE-404", totalLiters: 0.00, pings: 0, delegated: true, uncommittedPings: 0, lastPing: new Date().toISOString() },
@@ -186,78 +186,7 @@ const stats = {
         { deviceId: "HYDRX-NODE-707", totalLiters: 4.20, pings: 9, delegated: true, uncommittedPings: 9, lastPing: new Date().toISOString() },
         { deviceId: "HYDRX-NODE-808", totalLiters: 18.40, pings: 21, delegated: true, uncommittedPings: 1, lastPing: new Date().toISOString() }
     ],
-    recentLogs: [
-        {
-            id: `LOG-${Date.now()}-1`,
-            deviceId: "HYDRX-NODE-101",
-            resident: "BwFnqHWbnuYXWEdp64VCzydpnDP8bQJ1BQdmgvaWmPyG",
-            liters: 0.30,
-            status: "CONSERVING",
-            txHash: "45nRAVpHn5Brs2eU6c1ahmNk5Rfi31udyLfZWuiyof1DenwjwgPV7p9Kk14v1N7jYKdbBnut5MCBet3BRXUivLYP",
-            explorerUrl: `https://explorer.solana.com/tx/45nRAVpHn5Brs2eU6c1ahmNk5Rfi31udyLfZWuiyof1DenwjwgPV7p9Kk14v1N7jYKdbBnut5MCBet3BRXUivLYP?cluster=custom&customUrl=${encodeURIComponent(DEFAULT_ER_URL)}`,
-            executionLayer: "MagicBlock Ephemeral Rollup (ER)",
-            latencyMs: 24,
-            delegated: true,
-            autoCommitted: false,
-            timestamp: new Date(Date.now() - 15000).toISOString()
-        },
-        {
-            id: `LOG-${Date.now()}-2`,
-            deviceId: "HYDRX-NODE-101",
-            resident: "BwFnqHWbnuYXWEdp64VCzydpnDP8bQJ1BQdmgvaWmPyG",
-            liters: 0.45,
-            status: "CONSERVING",
-            txHash: "5fsbNapx28NMuowqeDGuicbAAgNvBwDLBMBLackXn3U9fG2hpWTGjUpMGjTcg5M3nGdge3WM1mY8aLgDKVhMQH9S",
-            explorerUrl: `https://explorer.solana.com/tx/5fsbNapx28NMuowqeDGuicbAAgNvBwDLBMBLackXn3U9fG2hpWTGjUpMGjTcg5M3nGdge3WM1mY8aLgDKVhMQH9S?cluster=custom&customUrl=${encodeURIComponent(DEFAULT_ER_URL)}`,
-            executionLayer: "MagicBlock Ephemeral Rollup (ER)",
-            latencyMs: 31,
-            delegated: true,
-            autoCommitted: false,
-            timestamp: new Date(Date.now() - 45000).toISOString()
-        },
-        {
-            id: `LOG-${Date.now()}-3`,
-            deviceId: "HYDRX-NODE-202",
-            resident: "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
-            liters: 0.35,
-            status: "NORMAL",
-            txHash: "3xW9Z6NTHiF4Feq9P15nXncKWQLE8UHXLq3Ej4qGFuKNLxbmoFsCdv3gaYJexngLFgAdNGXRQA57aiXtrsh4huB4",
-            explorerUrl: `https://explorer.solana.com/tx/3xW9Z6NTHiF4Feq9P15nXncKWQLE8UHXLq3Ej4qGFuKNLxbmoFsCdv3gaYJexngLFgAdNGXRQA57aiXtrsh4huB4?cluster=${NETWORK}`,
-            executionLayer: "MagicBlock Ephemeral Rollup (ER)",
-            latencyMs: 19,
-            delegated: true,
-            autoCommitted: false,
-            timestamp: new Date(Date.now() - 75000).toISOString()
-        },
-        {
-            id: `LOG-${Date.now()}-4`,
-            deviceId: "HYDRX-NODE-505",
-            resident: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
-            liters: 0.20,
-            status: "TOP_SAVER",
-            txHash: "3AVpiXtcqG72izdAmW16e7h617NknwSKYZMeo3BsbuB9evZWZ66oTycks824qZgAiaihCXcMPDgrMRwowNCNcMUp",
-            explorerUrl: `https://explorer.solana.com/tx/3AVpiXtcqG72izdAmW16e7h617NknwSKYZMeo3BsbuB9evZWZ66oTycks824qZgAiaihCXcMPDgrMRwowNCNcMUp?cluster=${NETWORK}`,
-            executionLayer: "MagicBlock Ephemeral Rollup (ER)",
-            latencyMs: 22,
-            delegated: true,
-            autoCommitted: false,
-            timestamp: new Date(Date.now() - 120000).toISOString()
-        },
-        {
-            id: `LOG-${Date.now()}-5`,
-            deviceId: "HYDRX-NODE-707",
-            resident: "7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU",
-            liters: 0.12,
-            status: "CONSERVING",
-            txHash: "2PBCr3ExQ1v4Uqa2gB5HPrH3N9RtJzzz7ubQ7775qW8zP1UqqypGoScsSRk9okaFkNxQWpU47mpRDwzi7A7JtADC",
-            explorerUrl: `https://explorer.solana.com/tx/2PBCr3ExQ1v4Uqa2gB5HPrH3N9RtJzzz7ubQ7775qW8zP1UqqypGoScsSRk9okaFkNxQWpU47mpRDwzi7A7JtADC?cluster=${NETWORK}`,
-            executionLayer: "MagicBlock Ephemeral Rollup (ER)",
-            latencyMs: 18,
-            delegated: true,
-            autoCommitted: false,
-            timestamp: new Date(Date.now() - 180000).toISOString()
-        }
-    ]
+    recentLogs: []
 };
 
 // Compute initial totals
@@ -541,9 +470,18 @@ app.post('/api/telemetry', async (req, res) => {
     }
 
     // Update in-memory stats
-    stats.totalLitersTracked = parseFloat((stats.totalLitersTracked + parsedLiters).toFixed(2));
+    const incomingMeterTotal = req.body.meterTotal !== undefined 
+        ? parseFloat(req.body.meterTotal) 
+        : (req.body.totalLiters !== undefined ? parseFloat(req.body.totalLiters) : null);
+
+    if (incomingMeterTotal !== null && !isNaN(incomingMeterTotal)) {
+        deviceEntry.totalLiters = parseFloat(incomingMeterTotal.toFixed(3));
+        stats.totalLitersTracked = deviceEntry.totalLiters;
+    } else {
+        deviceEntry.totalLiters = parseFloat((deviceEntry.totalLiters + parsedLiters).toFixed(3));
+        stats.totalLitersTracked = parseFloat((stats.totalLitersTracked + parsedLiters).toFixed(3));
+    }
     stats.telemetriesCount += 1;
-    deviceEntry.totalLiters = parseFloat((deviceEntry.totalLiters + parsedLiters).toFixed(2));
     deviceEntry.pings += 1;
     deviceEntry.lastPing = new Date().toISOString();
 

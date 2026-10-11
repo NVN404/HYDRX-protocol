@@ -23,55 +23,36 @@ export default function DashboardTab({ relayerStats, onRefreshRelayer }: Dashboa
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [claimResult, setClaimResult] = useState<string | null>(null);
   const [feedFilter, setFeedFilter] = useState<'my-node' | 'all'>('my-node');
-  const [selectedDeviceId, setSelectedDeviceId] = useState<string>('HYDRX-NODE-101');
+  const userDeviceId = 'HYDRX-NODE-101';
   const [isPairing, setIsPairing] = useState(false);
   const [pairResult, setPairResult] = useState<string | null>(null);
   const claimBurstRef = useRef<HTMLDivElement>(null);
 
-  // Auto-switch selected device when connected wallet changes
+  // Automatically pair HYDRX-NODE-101 to connected wallet
   useEffect(() => {
     if (!publicKey) return;
-    const walletAddr = publicKey.toBase58().toLowerCase();
+    const endpoint = getRelayerUrl();
+    axios.post(`${endpoint}/api/pair-device`, {
+      deviceId: 'HYDRX-NODE-101',
+      residentWallet: publicKey.toBase58(),
+    }).then((res) => {
+      const tx = res.data?.txHash;
+      setPairResult(
+        `Hardware node HYDRX-NODE-101 bound to ${publicKey.toBase58().slice(0, 6)}...${publicKey.toBase58().slice(-4)}${tx ? ` (PDA Tx: ${tx.slice(0, 10)}...)` : ''}`
+      );
+      onRefreshRelayer();
+    }).catch(() => {});
+  }, [publicKey]);
 
-    // Check if this wallet is already mapped to any device on the relayer
-    const boundDevice = relayerStats?.devices?.find(
-      (d: any) => d.resident && d.resident.toLowerCase() === walletAddr
-    );
-
-    if (boundDevice) {
-      setSelectedDeviceId(boundDevice.deviceId);
-    } else {
-      // Default to the connected wallet's unique resident node
-      setSelectedDeviceId(`HYDRX-NODE-${publicKey.toBase58().slice(0, 4)}`);
-    }
-  }, [publicKey, relayerStats?.devices]);
-
-  const availableDevices = useMemo(() => {
-    const fromRelayer = relayerStats?.devices?.map((d: any) => d.deviceId) || [];
-    const list = [...fromRelayer];
-    if (!list.includes('HYDRX-NODE-101')) {
-      list.unshift('HYDRX-NODE-101');
-    }
-    if (publicKey) {
-      const walletNode = `HYDRX-NODE-${publicKey.toBase58().slice(0, 4)}`;
-      if (!list.includes(walletNode)) {
-        list.push(walletNode);
-      }
-    }
-    return list;
-  }, [relayerStats, publicKey]);
-
-  const userDeviceId = selectedDeviceId;
-
-  // Find selected device record from the relayer
+  // Find HYDRX-NODE-101 record from the relayer
   const userDevice = useMemo(() => {
     if (!relayerStats?.devices) return null;
     return relayerStats.devices.find((d: any) =>
-      d.deviceId.toLowerCase() === userDeviceId.toLowerCase()
+      d.deviceId?.toLowerCase() === 'hydrx-node-101'
     );
-  }, [relayerStats, userDeviceId]);
+  }, [relayerStats]);
 
-  const isWokwiLiveNode = userDeviceId === 'HYDRX-NODE-101';
+  const isWokwiLiveNode = true;
   const dailyQuota = 200;
   // If the device has recorded usage, display it; otherwise, a fresh wallet starts with 0.00 L
   const userLitersUsed = userDevice ? parseFloat(userDevice.totalLiters) || 0 : 0;
@@ -322,107 +303,40 @@ export default function DashboardTab({ relayerStats, onRefreshRelayer }: Dashboa
         </div>
       </div>
 
-      {/* Hardware Node Onboarding & Wallet Binding Card */}
+      {/* Dedicated Physical Water Meter Binding Card (Locked to HYDRX-NODE-101) */}
       <div className="surface" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
               <span style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-1)' }}>
-                HARDWARE NODE ONBOARDING &middot; WALLET BINDING
+                HARDWARE METER &middot; HYDRX-NODE-101
               </span>
-              <span className="pill font-mono" style={{ fontSize: '0.66rem' }}>
-                DEPIN PROTOCOL
+              <span className="pill font-mono" style={{ fontSize: '0.66rem', backgroundColor: '#22c55e20', color: '#4ade80', borderColor: '#22c55e50' }}>
+                PRIMARY DEPIN WATER NODE
               </span>
             </div>
             <p style={{ fontSize: '0.82rem', color: 'var(--text-3)', margin: 0, lineHeight: 1.4 }}>
-              Bind your physical water meter hardware to your connected Solana wallet to establish on-chain ownership,
-              initialize your Ephemeral Rollup PDA, and automatically route all conservation yields.
+              Physical ESP32 & Wokwi water meter stream is locked to <strong>HYDRX-NODE-101</strong>. Telemetry pulses automatically route to your connected Solana wallet.
             </p>
           </div>
 
-          {connected && publicKey && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <a
-                href={`https://explorer.solana.com/address/${publicKey.toBase58()}?cluster=devnet`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-mono-ghost"
-                style={{ padding: '6px 14px', fontSize: '0.78rem', textDecoration: 'none' }}
-              >
-                Connected Wallet: {publicKey.toBase58().slice(0, 4)}..{publicKey.toBase58().slice(-4)} ↗
-              </a>
-            </div>
-          )}
-        </div>
-
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          flexWrap: 'wrap',
-          paddingTop: '10px',
-          borderTop: '1px solid var(--border)',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <label htmlFor="nodeIdInput" className="font-mono" style={{ fontSize: '0.8rem', color: 'var(--text-2)' }}>
-              Hardware Node ID:
-            </label>
-            <input
-              id="nodeIdInput"
-              type="text"
-              value={selectedDeviceId}
-              onChange={(e) => setSelectedDeviceId(e.target.value.trim().toUpperCase())}
-              placeholder="e.g. HYDRX-NODE-101"
-              className="font-mono"
-              style={{
-                background: 'var(--surface-elevated)',
-                border: '1px solid var(--border)',
-                color: 'var(--text-1)',
-                padding: '6px 12px',
-                borderRadius: 'var(--radius-input)',
-                fontSize: '0.84rem',
-                minWidth: '200px',
-                outline: 'none',
-              }}
-            />
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.74rem', color: 'var(--text-4)' }}>Presets:</span>
-            {['HYDRX-NODE-101', 'HYDRX-NODE-202', publicKey ? `HYDRX-NODE-${publicKey.toBase58().slice(0, 4)}` : null].filter(Boolean).map((devId) => (
+          {connected && publicKey ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <span className="pill font-mono" style={{ backgroundColor: 'rgba(0, 242, 254, 0.12)', color: '#00F2FE', borderColor: 'rgba(0, 242, 254, 0.35)' }}>
+                ● BOUND TO {publicKey.toBase58().slice(0, 4)}..{publicKey.toBase58().slice(-4)}
+              </span>
               <button
-                key={devId}
-                type="button"
-                onClick={() => setSelectedDeviceId(devId as string)}
+                onClick={handlePairDevice}
+                disabled={isPairing}
                 className="btn-mono-ghost"
-                style={{
-                  padding: '3px 8px',
-                  fontSize: '0.7rem',
-                  fontFamily: 'var(--font-mono)',
-                  background: selectedDeviceId === devId ? 'var(--text-1)' : 'transparent',
-                  color: selectedDeviceId === devId ? 'var(--canvas)' : 'var(--text-2)',
-                  borderColor: selectedDeviceId === devId ? 'var(--text-1)' : 'var(--border)',
-                }}
+                style={{ padding: '6px 14px', fontSize: '0.78rem' }}
               >
-                {devId}
+                {isPairing ? 'Re-binding...' : 'Re-sync On-Chain Ownership ↗'}
               </button>
-            ))}
-          </div>
-
-          <button
-            onClick={handlePairDevice}
-            disabled={isPairing || !connected || !selectedDeviceId}
-            className="btn-mono-ghost"
-            style={{
-              padding: '6px 16px',
-              fontSize: '0.82rem',
-              fontWeight: 700,
-              background: 'var(--text-1)',
-              color: 'var(--canvas)',
-            }}
-          >
-            {isPairing ? 'Binding Node...' : `Claim & Bind ${selectedDeviceId || 'Node'} to Wallet`}
-          </button>
+            </div>
+          ) : (
+            <span className="pill pill-muted font-mono">CONNECT WALLET TO BIND NODE</span>
+          )}
         </div>
 
         {pairResult && (
