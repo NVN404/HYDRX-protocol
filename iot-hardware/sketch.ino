@@ -5,6 +5,7 @@
  */
 
 #include <WiFi.h>
+#include <WiFiClientSecure.h>
 #include <HTTPClient.h>
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
@@ -12,14 +13,20 @@
 const char* ssid = "Wokwi-GUEST";
 const char* password = "";
 
-// Dynamic candidates to reach the local Relayer from Wokwi simulation
+// Dynamic candidates to reach the HydrX Relayer:
+// 1. Cloud Deployed Relayer: Reaches the live Relayer from Wokwi Web Simulator across the internet
+// 2. host.wokwi.internal: Reaches local Relayer (port 3005) from Wokwi VS Code Simulator
+// 3. Current Host LAN IP: Direct LAN bridge to local Mac relayer (10.116.252.76)
+// 4. localhost: Standard loopback fallback
+// 5. 10.0.2.2: QEMU virtual router gateway
 const char* RELAYER_ENDPOINTS[] = {
+  "https://hydrx-relayer.onrender.com/api/telemetry",
   "http://host.wokwi.internal:3005/api/telemetry",
-  "http://10.113.66.157:3005/api/telemetry",
-  "http://10.0.2.2:3005/api/telemetry",
-  "http://localhost:3005/api/telemetry"
+  "http://10.116.252.76:3005/api/telemetry",
+  "http://localhost:3005/api/telemetry",
+  "http://10.0.2.2:3005/api/telemetry"
 };
-const int NUM_ENDPOINTS = 4;
+const int NUM_ENDPOINTS = 5;
 int activeEndpointIndex = 0;
 
 const char* DEVICE_ID = "HYDRX-NODE-101";
@@ -117,8 +124,19 @@ void sendTelemetry(float currentFlow, float litersIncrement) {
     const char* targetUrl = RELAYER_ENDPOINTS[epIdx];
 
     HTTPClient http;
-    http.setTimeout(1800);
-    http.begin(targetUrl);
+    http.setTimeout(2500);
+
+    bool isHttps = (strncmp(targetUrl, "https://", 8) == 0);
+    WiFiClientSecure secureClient;
+    WiFiClient plainClient;
+
+    if (isHttps) {
+      secureClient.setInsecure();
+      http.begin(secureClient, targetUrl);
+    } else {
+      http.begin(plainClient, targetUrl);
+    }
+
     http.addHeader("Content-Type", "application/json");
 
     httpResponseCode = http.POST(jsonPayload);

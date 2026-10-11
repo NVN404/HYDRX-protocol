@@ -57,7 +57,9 @@ export default function Navbar({
     { id: 'hardware', label: 'Hardware Lab', requiresWallet: true },
   ];
 
-  const visibleNavItems = allNavItems;
+  const visibleNavItems = connected
+    ? allNavItems
+    : allNavItems.filter((item) => !item.requiresWallet);
 
   return (
     <motion.header
@@ -117,7 +119,6 @@ export default function Navbar({
       >
         {visibleNavItems.map((item) => {
           const isActive = activeTab === item.id;
-          const isLocked = !connected && item.requiresWallet;
 
           return (
             <button
@@ -128,7 +129,7 @@ export default function Navbar({
                 background: 'transparent',
                 border: 'none',
                 padding: '8px 14px',
-                color: isActive ? 'var(--text-1)' : isLocked ? 'var(--text-4)' : 'var(--text-3)',
+                color: isActive ? 'var(--text-1)' : 'var(--text-3)',
                 fontSize: '0.86rem',
                 fontWeight: isActive ? 600 : 500,
                 cursor: 'pointer',
@@ -141,23 +142,6 @@ export default function Navbar({
               }}
             >
               <span>{item.label}</span>
-              {isLocked && (
-                <span
-                  className="font-mono"
-                  style={{
-                    fontSize: '0.6rem',
-                    padding: '1px 5px',
-                    borderRadius: '4px',
-                    background: 'rgba(239, 68, 68, 0.12)',
-                    color: '#f87171',
-                    border: '1px solid rgba(239, 68, 68, 0.25)',
-                    fontWeight: 600,
-                    letterSpacing: '0.03em',
-                  }}
-                >
-                  LOCKED
-                </span>
-              )}
               {isActive && (
                 <motion.div
                   layoutId="nav-underline"

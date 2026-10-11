@@ -67,9 +67,12 @@ export default function Page() {
   }, [mounted, theme]);
 
   // Auto-switch tabs to dashboard when wallet connects from landing
+  // and return to landing when wallet disconnects
   useEffect(() => {
     if (connected && activeTab === 'landing') {
       setActiveTab('dashboard');
+    } else if (!connected && activeTab !== 'landing' && activeTab !== 'faq') {
+      setActiveTab('landing');
     }
   }, [connected]);
 

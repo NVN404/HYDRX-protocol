@@ -27,6 +27,24 @@ export default function DashboardTab({ relayerStats, onRefreshRelayer }: Dashboa
   const [pairResult, setPairResult] = useState<string | null>(null);
   const claimBurstRef = useRef<HTMLDivElement>(null);
 
+  // Auto-switch selected device when connected wallet changes
+  useEffect(() => {
+    if (!publicKey) return;
+    const walletAddr = publicKey.toBase58().toLowerCase();
+
+    // Check if this wallet is already mapped to any device on the relayer
+    const boundDevice = relayerStats?.devices?.find(
+      (d: any) => d.resident && d.resident.toLowerCase() === walletAddr
+    );
+
+    if (boundDevice) {
+      setSelectedDeviceId(boundDevice.deviceId);
+    } else {
+      // Default to the connected wallet's unique resident node
+      setSelectedDeviceId(`HYDRX-NODE-${publicKey.toBase58().slice(0, 4)}`);
+    }
+  }, [publicKey, relayerStats?.devices]);
+
   const availableDevices = useMemo(() => {
     const fromRelayer = relayerStats?.devices?.map((d: any) => d.deviceId) || [];
     const list = [...fromRelayer];
@@ -52,9 +70,9 @@ export default function DashboardTab({ relayerStats, onRefreshRelayer }: Dashboa
     );
   }, [relayerStats, userDeviceId]);
 
-  const isWokwiLiveNode = userDeviceId === 'HYDRX-NODE-101';
   const dailyQuota = 200;
-  const userLitersUsed = userDevice ? parseFloat(userDevice.totalLiters) || 0 : (isWokwiLiveNode ? 0 : 4.87);
+  // If the device has recorded usage, display it; otherwise, a fresh wallet starts with 0.00 L
+  const userLitersUsed = userDevice ? parseFloat(userDevice.totalLiters) || 0 : 0;
   const remaining = Math.max(0, dailyQuota - userLitersUsed);
   const hydrxYield = parseFloat((remaining / 1000).toFixed(4));
   const telemetryCount = userDevice?.pings ?? 0;
@@ -62,17 +80,19 @@ export default function DashboardTab({ relayerStats, onRefreshRelayer }: Dashboa
   // Filter transaction feed to selected node or all
   const recentLogs = useMemo(() => {
     const rawLogs = relayerStats?.recentLogs || [];
-    const myLogs = rawLogs.filter((log: any) =>
-      log.deviceId?.toLowerCase() === userDeviceId.toLowerCase()
-    );
+    const walletAddr = publicKey?.toBase58().toLowerCase();
 
     if (feedFilter === 'my-node') {
-      if (myLogs.length > 0) return myLogs.slice(0, 15);
-      return [];
+      const myLogs = rawLogs.filter((log: any) => {
+        const matchesDevice = log.deviceId?.toLowerCase() === userDeviceId.toLowerCase();
+        const matchesWallet = walletAddr && log.resident?.toLowerCase() === walletAddr;
+        return matchesDevice || matchesWallet;
+      });
+      return myLogs.slice(0, 15);
     }
 
     return rawLogs.slice(0, 15);
-  }, [relayerStats, userDeviceId, feedFilter]);
+  }, [relayerStats, userDeviceId, feedFilter, publicKey]);
 
   // Handle Refresh with 360-degree Motion spinner
   const handleRefresh = async () => {

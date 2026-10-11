@@ -580,22 +580,34 @@ The frontend application (`http://localhost:3003`) is divided into distinct page
 
 ---
 
-### 7.5 $HYDRX Token Marketplace Tab
-* **Route**: Select **Marketplace** from the navigation bar
-* **Purpose**: Decentralized exchange for Water Benefit Certificates (WBC).
+### 7.5 $HYDRX Token Marketplace & Meteora Dynamic Bonding Curve (DBC)
+* **Route**: Select **Marketplace** / `/corporate`
+* **Purpose**: Decentralized price discovery and liquidity formation for Water Benefit Certificates ($HYDRX) via **Meteora Dynamic Bonding Curve (DBC)**, with auto-migration to **Meteora DAMM v2**.
 * **Key Features**:
-  * **Order Book & Pricing**: Trade $HYDRX against USDC.
-  * **Liquidity Pool Stats**: Total value locked in the conservation reserve.
-  * **Redemption Portal**: Redeem tokens for utility bill rebates or smart water hardware upgrades.
+  * **Meteora DBC RWA Price Discovery**:
+    * Unlike meme tokens, water conservation certificates follow an **RWA Stepped Ecological Polynomial Curve** ($1.15 base up to $1.67+ target).
+    * Dynamic fees automatically adjust (0.25% base + 0.25% dynamic volatility = 0.50% total) based on trade intensity and seasonal water demand.
+  * **Closed-Loop Community Fee Routing**:
+    * **80%** of dynamic fees stay bonded in the liquidity reserve.
+    * **15%** is auto-routed to the **Apartment Resident Utility Bill Rebate Treasury**, directly paying the municipal water bills of conserving households.
+    * **5%** is routed to the **Clean Water NGO Wells Pool** to fund borehole drilling in drought-prone communities.
+  * **Meteora DAMM v2 Graduation**:
+    * Once bonded volume reaches the **50,000 USDC threshold**, liquidity automatically graduates into a permanent **Meteora DAMM v2** pool with locked protocol-owned liquidity.
+  * **Public DBC Liquidity Swap**:
+    * Residents with claimed $HYDRX can swap tokens for USDC/SOL directly against the curve with verified price impact and dynamic slippage protection.
+  * **Deployment & Initialization Tooling**:
+    * Programmatic pool initialization script: [`scripts/init-meteora-dbc.js`](file:///Users/yunohu/Documents/magicblockz/scripts/init-meteora-dbc.js) and [`scripts/init-meteora-dbc.ts`](file:///Users/yunohu/Documents/magicblockz/scripts/init-meteora-dbc.ts).
 
 ---
 
-### 7.6 Clean Water Impact & Donation Tab
-* **Route**: Select **Donations** from the navigation bar
-* **Purpose**: Direct charitable funding for clean water infrastructure in water-stressed regions.
+### 7.6 Clean Water Impact & Rewards Tab
+* **Route**: Select **Impact & Rewards** from the navigation bar
+* **Purpose**: Resident value exchange for apartment utility rebates, hardware kits, and clean water donations.
 * **Key Features**:
-  * **Community Water Projects**: Fund borehole drilling, rainwater harvesting, and filter distribution.
-  * **Direct SOL / USDC Donation Engine**: Contribute directly with verified on-chain donation tracking.
+  * **Meteora DBC-Backed Parity**:
+    * Spot rate continuously indexed to the live Meteora Dynamic Bonding Curve (e.g. `1 $HYDRX = $1.284 USDC`).
+    * Apartment water maintenance deductions (e.g. BWSSB Municipal Water Board) are backed by corporate ESG settlement liquidity.
+  * **Community Water Projects**: Fund borehole drilling, rainwater harvesting, and filter distribution with verified on-chain donation tracking.
   * **Transparent Allocation**: Displays the exact liters of clean water made accessible per dollar contributed.
 
 ---
@@ -611,12 +623,13 @@ The frontend application (`http://localhost:3003`) is divided into distinct page
 ---
 
 ### 7.8 Corporate ESG Water Offset Portal (`/corporate`)
-* **Route**: Navigate to `http://localhost:3003/corporate`
-* **Purpose**: Enterprise portal for corporations purchasing and retiring verified water credits for ESG compliance.
+* **Route**: Navigate to `http://localhost:3000/corporate`
+* **Purpose**: Enterprise gateway for corporations (Google, Microsoft, AWS, Salesforce) purchasing and retiring verified water credits for ESG compliance.
 * **Key Features**:
-  * **Batch Credit Purchase**: Corporations buy $HYDRX tokens directly from the community reserve.
-  * **On-Chain Retirement & Burning**: Invokes `burn_and_retire`, burning tokens and emitting an immutable on-chain memo with company name, volume retired, and timestamp.
-  * **ESG Certificate Generator**: Instant downloadable audit certificate linking directly to the Solana Devnet transaction signature.
+  * **Meteora DBC Settlement**: Corporations purchase water offset credits directly along the Meteora Dynamic Bonding Curve, dynamically deepening liquidity.
+  * **On-Chain Retirement & Burning**: Invokes Anchor `burn_and_retire`, permanently burning tokens from circulating supply and emitting an immutable on-chain memo.
+  * **Verifiable Audit Certificate**: Instant downloadable high-resolution PNG certificate with dual transaction signatures (Meteora DBC settlement deposit + on-chain SPL token burn).
+  * **Judging Access Note**: For Meteora Hackathon evaluation, add GitHub ID `dannxbt` with read permissions as requested in the hackathon listing guidelines.
 
 ---
 
