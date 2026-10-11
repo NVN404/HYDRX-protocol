@@ -10,6 +10,7 @@ import RadialGauge from './motion/RadialGauge';
 import NumberCountUp from './motion/NumberCountUp';
 import { getRelayerUrl, RELAYER_URL, getExplorerUrl } from '../lib/solana';
 import MagicBlockLogo from './logos/MagicBlockLogo';
+import { RotateCcw } from 'lucide-react';
 
 interface DashboardProps {
   relayerStats: any;
@@ -122,6 +123,30 @@ export default function DashboardTab({ relayerStats, onRefreshRelayer }: Dashboa
       setPairResult(`Pairing failed: ${e.response?.data?.error || e.message}`);
     } finally {
       setIsPairing(false);
+    }
+  };
+
+  // Handle resetting the demo metrics and telemetry logs back to 0.00 L
+  const [isResetting, setIsResetting] = useState(false);
+  const handleResetSession = async () => {
+    if (!confirm('Reset current demo metrics, gauge, and telemetry feed back to 0.00 L?')) return;
+    setIsResetting(true);
+    try {
+      const endpoint = getRelayerUrl();
+      await axios.post(`${endpoint}/api/reset`, {
+        deviceId: userDeviceId,
+        residentWallet: publicKey?.toBase58() || undefined,
+      });
+      if (publicKey) {
+        localStorage.removeItem(`hydrx_claimed_${publicKey.toBase58()}`);
+      }
+      setClaimResult(null);
+      await onRefreshRelayer();
+    } catch (e: any) {
+      console.warn('Reset error:', e);
+      await onRefreshRelayer();
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -274,6 +299,25 @@ export default function DashboardTab({ relayerStats, onRefreshRelayer }: Dashboa
               ↻
             </motion.span>
             Refresh Feed
+          </button>
+
+          <button
+            onClick={handleResetSession}
+            disabled={isResetting}
+            className="btn-mono-ghost"
+            title="Reset consumption gauge and clear telemetry logs to 0.00 L for a clean live demonstration"
+            style={{
+              padding: '8px 16px',
+              fontSize: '0.85rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              borderColor: 'rgba(239, 68, 68, 0.35)',
+              color: '#f87171',
+            }}
+          >
+            <RotateCcw size={13} className={isResetting ? 'animate-spin' : ''} />
+            {isResetting ? 'Resetting...' : 'Reset Demo (0.0L)'}
           </button>
         </div>
       </div>

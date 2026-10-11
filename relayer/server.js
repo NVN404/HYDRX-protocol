@@ -1062,6 +1062,55 @@ app.get('/api/stats', (req, res) => {
 });
 
 /**
+ * POST /api/reset
+ * Resets demo telemetry, meters, and recent logs back to 0.00 L
+ */
+app.post('/api/reset', (req, res) => {
+    const { residentWallet, deviceId } = req.body || {};
+
+    stats.totalLitersTracked = 0;
+    stats.telemetriesCount = 0;
+    stats.ephemeralPingsCount = 0;
+    stats.recentLogs = [];
+
+    stats.devices.forEach(d => {
+        d.totalLiters = 0;
+        d.pings = 0;
+        d.uncommittedPings = 0;
+        d.lastPing = new Date().toISOString();
+        if (deviceId && d.deviceId === deviceId && residentWallet) {
+            d.resident = residentWallet;
+        }
+    });
+
+    if (residentWallet && deviceId) {
+        deviceToWallet[deviceId] = residentWallet;
+    }
+
+    console.log(chalk.yellow(`[RESET] Telemetry stats & transaction log cleared to 0.00 L.`));
+
+    return res.json({
+        success: true,
+        message: "Demo session reset to 0.00 L. Meter logs cleared and ready for new telemetry stream.",
+        stats
+    });
+});
+
+app.get('/api/reset', (req, res) => {
+    stats.totalLitersTracked = 0;
+    stats.telemetriesCount = 0;
+    stats.ephemeralPingsCount = 0;
+    stats.recentLogs = [];
+    stats.devices.forEach(d => {
+        d.totalLiters = 0;
+        d.pings = 0;
+        d.uncommittedPings = 0;
+        d.lastPing = new Date().toISOString();
+    });
+    return res.json({ success: true, message: "Demo session reset to 0.00 L" });
+});
+
+/**
  * GET /api/resident/:address
  */
 app.get('/api/resident/:address', (req, res) => {
