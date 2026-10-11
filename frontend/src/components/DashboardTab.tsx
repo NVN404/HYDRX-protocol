@@ -70,6 +70,7 @@ export default function DashboardTab({ relayerStats, onRefreshRelayer }: Dashboa
     );
   }, [relayerStats, userDeviceId]);
 
+  const isWokwiLiveNode = userDeviceId === 'HYDRX-NODE-101';
   const dailyQuota = 200;
   // If the device has recorded usage, display it; otherwise, a fresh wallet starts with 0.00 L
   const userLitersUsed = userDevice ? parseFloat(userDevice.totalLiters) || 0 : 0;
