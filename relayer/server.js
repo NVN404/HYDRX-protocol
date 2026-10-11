@@ -110,30 +110,42 @@ async function sendOnChainEvent({ action, deviceId, resident, details }) {
             }
 
             const memoText = `[HYDRX-${action}] Node: ${deviceId || 'HYDRX-NODE-101'} | Resident: ${resident || relayerKeypair.publicKey.toBase58()} | ${details || ''}`;
-            const keys = [{ pubkey: relayerKeypair.publicKey, isSigner: true, isWritable: true }];
+            const tx = new Transaction();
+
+            // 0-lamport transfer to include residentPubkey in transaction accounts
+            // so that it gets permanently indexed under the resident's wallet on Solana Explorer
             if (residentPubkey && !residentPubkey.equals(relayerKeypair.publicKey)) {
-                keys.push({ pubkey: residentPubkey, isSigner: false, isWritable: false });
+                tx.add(SystemProgram.transfer({
+                    fromPubkey: relayerKeypair.publicKey,
+                    toPubkey: residentPubkey,
+                    lamports: 0,
+                }));
             }
 
-            const memoIx = new TransactionInstruction({
-                keys,
+            // Memo instruction signed ONLY by relayer
+            tx.add(new TransactionInstruction({
+                keys: [{ pubkey: relayerKeypair.publicKey, isSigner: true, isWritable: false }],
                 programId: MEMO_PROGRAM_ID,
                 data: Buffer.from(memoText, "utf-8"),
-            });
-            const tx = new Transaction().add(memoIx);
+            }));
+
             tx.feePayer = relayerKeypair.publicKey;
             const { blockhash, lastValidBlockHeight } = await conn.getLatestBlockhash('confirmed');
             tx.recentBlockhash = blockhash;
             tx.sign(relayerKeypair);
+
             const txSignature = await conn.sendRawTransaction(tx.serialize(), {
                 skipPreflight: false,
                 preflightCommitment: 'confirmed',
             });
+
             await conn.confirmTransaction({
                 blockhash,
                 lastValidBlockHeight,
                 signature: txSignature
             }, 'confirmed');
+
+            console.log(chalk.green(`[ON-CHAIN EVENT CONFIRMED] Action: ${action} | Sig: ${txSignature}`));
             return txSignature;
         } catch (err) {
             console.warn(chalk.yellow(`[ON-CHAIN EVENT NOTICE] ${err.message}`));
@@ -574,6 +586,8 @@ app.post('/api/pair-device', async (req, res) => {
     deviceToWallet[targetDevice] = residentAddress;
 
     let dev = stats.devices.find(d => d.deviceId === targetDevice);
+    const isAlreadyPairedToUser = dev && dev.resident && dev.resident.toLowerCase() === residentAddress.toLowerCase() && dev.pairTx;
+
     if (!dev) {
         dev = {
             deviceId: targetDevice,
@@ -582,6 +596,7 @@ app.post('/api/pair-device', async (req, res) => {
             pings: 0,
             delegated: true,
             uncommittedPings: 0,
+            pairTx: null,
             lastPing: new Date().toISOString()
         };
         stats.devices.push(dev);
@@ -592,6 +607,7 @@ app.post('/api/pair-device', async (req, res) => {
             dev.totalLiters = 0;
             dev.pings = 0;
             dev.uncommittedPings = 0;
+            dev.pairTx = null;
             console.log(chalk.cyan(`[NEW RESIDENT] Node ${targetDevice} transferred to new resident ${residentAddress}. Usage reset to 0.00 L.`));
         }
         dev.resident = residentAddress;
@@ -606,41 +622,46 @@ app.post('/api/pair-device', async (req, res) => {
         console.warn(chalk.yellow(`[PAIR DELEGATION NOTICE] ${e.message}`));
     }
 
-    // Submit confirmed on-chain event to Solana Devnet with user's wallet in account keys
-    let txSignature = await sendOnChainEvent({
-        action: 'PAIR-DEVICE',
-        deviceId: targetDevice,
-        resident: residentAddress,
-        details: `Node ${targetDevice} bound to resident wallet ${residentAddress}`
-    });
+    let txSignature = dev.pairTx || null;
+    if (!isAlreadyPairedToUser || !txSignature) {
+        // Submit confirmed on-chain event to Solana Devnet with user's wallet in account keys
+        txSignature = await sendOnChainEvent({
+            action: 'PAIR-DEVICE',
+            deviceId: targetDevice,
+            resident: residentAddress,
+            details: `Node ${targetDevice} bound to resident wallet ${residentAddress}`
+        });
 
-    if (!txSignature) {
-        txSignature = bs58.encode(Buffer.from(Array.from({ length: 64 }, () => Math.floor(Math.random() * 256))));
+        if (txSignature) {
+            dev.pairTx = txSignature;
+            const explorerUrl = `https://explorer.solana.com/tx/${txSignature}?cluster=devnet`;
+            const walletExplorerUrl = `https://explorer.solana.com/address/${residentAddress}?cluster=devnet`;
+
+            const pairLogEntry = {
+                id: `PAIR-${Date.now()}`,
+                deviceId: targetDevice,
+                resident: residentAddress,
+                liters: 0,
+                status: 'PAIRED & DELEGATED',
+                txHash: txSignature,
+                explorerUrl,
+                walletExplorerUrl,
+                executionLayer: 'Solana Devnet L1 + MagicBlock ER',
+                latencyMs: 140,
+                delegated: true,
+                autoCommitted: true,
+                isPairEvent: true,
+                timestamp: new Date().toISOString()
+            };
+            stats.recentLogs.unshift(pairLogEntry);
+            if (stats.recentLogs.length > 60) stats.recentLogs.pop();
+
+            console.log(chalk.bold.green(`[NODE PAIRED] ${targetDevice} successfully bound to resident ${residentAddress} (Tx: ${txSignature})`));
+        }
     }
 
-    const explorerUrl = `https://explorer.solana.com/tx/${txSignature}?cluster=devnet`;
+    const explorerUrl = txSignature ? `https://explorer.solana.com/tx/${txSignature}?cluster=devnet` : null;
     const walletExplorerUrl = `https://explorer.solana.com/address/${residentAddress}?cluster=devnet`;
-
-    const pairLogEntry = {
-        id: `PAIR-${Date.now()}`,
-        deviceId: targetDevice,
-        resident: residentAddress,
-        liters: dev.totalLiters,
-        status: 'PAIRED & DELEGATED',
-        txHash: txSignature,
-        explorerUrl,
-        walletExplorerUrl,
-        executionLayer: 'Solana Devnet L1 + MagicBlock ER',
-        latencyMs: 140,
-        delegated: true,
-        autoCommitted: true,
-        isPairEvent: true,
-        timestamp: new Date().toISOString()
-    };
-    stats.recentLogs.unshift(pairLogEntry);
-    if (stats.recentLogs.length > 60) stats.recentLogs.pop();
-
-    console.log(chalk.bold.green(`[NODE PAIRED] ${targetDevice} successfully bound to resident ${residentAddress} (Tx: ${txSignature})`));
 
     return res.json({
         success: true,

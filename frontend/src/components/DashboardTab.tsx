@@ -26,19 +26,26 @@ export default function DashboardTab({ relayerStats, onRefreshRelayer }: Dashboa
   const [isPairing, setIsPairing] = useState(false);
   const [pairResult, setPairResult] = useState<string | null>(null);
   const claimBurstRef = useRef<HTMLDivElement>(null);
+  const hasPairedWalletRef = useRef<string | null>(null);
 
-  // Automatically pair HYDRX-NODE-101 to connected wallet
+  // Automatically pair HYDRX-NODE-101 to connected wallet (once per wallet connection)
   useEffect(() => {
     if (!publicKey) return;
+    const walletKey = publicKey.toBase58();
+    if (hasPairedWalletRef.current === walletKey) return;
+    hasPairedWalletRef.current = walletKey;
+
     const endpoint = getRelayerUrl();
     axios.post(`${endpoint}/api/pair-device`, {
       deviceId: 'HYDRX-NODE-101',
-      residentWallet: publicKey.toBase58(),
+      residentWallet: walletKey,
     }).then((res) => {
       const tx = res.data?.txHash;
-      setPairResult(
-        `Hardware node HYDRX-NODE-101 bound to ${publicKey.toBase58().slice(0, 6)}...${publicKey.toBase58().slice(-4)}${tx ? ` (PDA Tx: ${tx.slice(0, 10)}...)` : ''}`
-      );
+      if (tx) {
+        setPairResult(
+          `Hardware node HYDRX-NODE-101 bound to ${walletKey.slice(0, 6)}...${walletKey.slice(-4)} (Tx: ${tx.slice(0, 10)}...)`
+        );
+      }
       onRefreshRelayer();
     }).catch(() => {});
   }, [publicKey]);
