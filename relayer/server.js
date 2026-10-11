@@ -582,6 +582,13 @@ app.post('/api/pair-device', async (req, res) => {
         stats.devices.push(dev);
         stats.activeDevicesCount = stats.devices.length;
     } else {
+        // If a new resident is taking over this node, start their usage fresh at 0.00 L
+        if (dev.resident && dev.resident.toLowerCase() !== residentAddress.toLowerCase()) {
+            dev.totalLiters = 0;
+            dev.pings = 0;
+            dev.uncommittedPings = 0;
+            console.log(chalk.cyan(`[NEW RESIDENT] Node ${targetDevice} transferred to new resident ${residentAddress}. Usage reset to 0.00 L.`));
+        }
         dev.resident = residentAddress;
         dev.delegated = true;
     }
